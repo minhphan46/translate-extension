@@ -187,7 +187,7 @@ function mountLoadingOverlay(
 }
 
 async function handleShortcut(): Promise<void> {
-  debugLog("Ctrl detected");
+  debugLog("Shift detected");
   const selectedText = getSelectedText();
   const anchorRect = getSelectionRect();
   debugLog("Selection snapshot", {
@@ -235,7 +235,7 @@ async function handleShortcut(): Promise<void> {
 }
 
 window.addEventListener("keydown", (event) => {
-  if (event.key !== "Control") {
+  if (event.key !== "Shift") {
     return;
   }
 

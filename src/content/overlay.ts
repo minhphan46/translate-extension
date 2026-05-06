@@ -102,7 +102,7 @@ function positionOverlay(root: HTMLDivElement, card: HTMLDivElement, anchorRect:
 
   card.style.maxHeight = `${maxCardHeight}px`;
 
-  const overlayWidth = Math.ceil(card.getBoundingClientRect().width || 340);
+  const overlayWidth = Math.ceil(card.getBoundingClientRect().width || 500);
   const overlayHeight = Math.ceil(card.getBoundingClientRect().height || Math.min(card.scrollHeight, maxCardHeight));
 
   let left = anchorRect.right - overlayWidth;
@@ -137,7 +137,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
   root.style.color = "#0f172a";
 
   const card = document.createElement("div");
-  card.style.width = "340px";
+  card.style.width = "500px";
   card.style.display = "flex";
   card.style.flexDirection = "column";
   card.style.overflow = "hidden";
