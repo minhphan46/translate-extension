@@ -4,6 +4,8 @@ import { createTranslationOverlay } from "./overlay";
 import "./content.css";
 
 let activeOverlay: ReturnType<typeof createTranslationOverlay> | null = null;
+let activeUtterance: SpeechSynthesisUtterance | null = null;
+let activeSpeechTarget: "original" | "translation" | null = null;
 const LOG_PREFIX = "[Translate Extension]";
 const VIETNAMESE_PATTERN =
   /[ăâđêôơưàáạảãằắặẳẵầấậẩẫèéẹẻẽềếệểễìíịỉĩòóọỏõồốộổỗờớợởỡùúụủũừứựửữỳýỵỷỹ]/i;
@@ -37,6 +39,7 @@ function detectSelectionDirection(text: string): TranslationResult["direction"] 
 }
 
 function destroyOverlay(): void {
+  stopSpeaking();
   activeOverlay?.destroy();
   activeOverlay = null;
 }
@@ -90,10 +93,42 @@ function getSelectionRect(): DOMRect | null {
   return null;
 }
 
-function speakText(text: string, lang: string): void {
+function stopSpeaking(): void {
+  window.speechSynthesis.cancel();
+  activeUtterance = null;
+  activeSpeechTarget = null;
+  activeOverlay?.setSpeaking(null);
+}
+
+function speakText(id: "original" | "translation", text: string, lang: string): void {
+  if (activeSpeechTarget === id && window.speechSynthesis.speaking) {
+    debugLog("Stopping active speech", { id });
+    stopSpeaking();
+    return;
+  }
+
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = lang;
+  utterance.onend = () => {
+    debugLog("Speech ended", { id });
+    if (activeUtterance === utterance) {
+      activeUtterance = null;
+      activeSpeechTarget = null;
+      activeOverlay?.setSpeaking(null);
+    }
+  };
+  utterance.onerror = () => {
+    debugLog("Speech failed", { id });
+    if (activeUtterance === utterance) {
+      activeUtterance = null;
+      activeSpeechTarget = null;
+      activeOverlay?.setSpeaking(null);
+    }
+  };
+  activeUtterance = utterance;
+  activeSpeechTarget = id;
+  activeOverlay?.setSpeaking(id);
   window.speechSynthesis.speak(utterance);
 }
 
@@ -114,34 +149,6 @@ async function requestTranslation(text: string): Promise<TranslationResult> {
     optionCount: response.data.translatedOptions?.length ?? 1
   });
   return response.data;
-}
-
-function mountOverlay(result: TranslationResult, anchorRect: DOMRect): void {
-  destroyOverlay();
-  debugLog("Mounting overlay", {
-    anchorRect: {
-      top: anchorRect.top,
-      left: anchorRect.left,
-      right: anchorRect.right,
-      bottom: anchorRect.bottom,
-      width: anchorRect.width,
-      height: anchorRect.height
-    }
-  });
-
-  activeOverlay = createTranslationOverlay({
-    originalText: result.originalText,
-    translatedOptions: result.translatedOptions ?? [result.translatedText],
-    direction: result.direction,
-    anchorRect,
-    onCopy: async (value) => navigator.clipboard.writeText(value),
-    onOpenSettings: () => {
-      void chrome.runtime.sendMessage({ type: "OPEN_OPTIONS" } satisfies RuntimeMessage);
-    },
-    onSpeak: speakText
-  });
-
-  document.body.appendChild(activeOverlay.element);
 }
 
 function mountLoadingOverlay(
@@ -169,7 +176,9 @@ function mountLoadingOverlay(
     onOpenSettings: () => {
       void chrome.runtime.sendMessage({ type: "OPEN_OPTIONS" } satisfies RuntimeMessage);
     },
-    onSpeak: speakText
+    onSpeakToggle: ({ id, value, lang }) => {
+      speakText(id, value, lang);
+    }
   });
 
   activeOverlay.setLoading("Loading translation...");
