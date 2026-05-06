@@ -1,13 +1,28 @@
 # Translate Extension
 
-Chrome Extension dịch nhanh nội dung trên trang web:
+A Chrome Extension for quick website translation with two translation flows:
 
-- `VI -> EN`: gọi OpenAI, trả về `3` phương án tiếng Anh để người dùng chọn.
-- `Any language -> VI`: tự detect ngôn ngữ nguồn rồi dịch sang tiếng Việt.
-- Có `Dashboard` và `Settings` để quản lý API key, model, prompt template.
-- Người dùng bôi đen text rồi nhấn `Ctrl` để mở popup dịch ngay trên trang.
+- `Vietnamese -> English`: uses OpenAI and returns `3` English translation options.
+- `Any other language -> Vietnamese`: auto-detects the source language and translates it into Vietnamese.
 
-## Stack
+The extension includes:
+
+- An on-page translation modal
+- A Dashboard and Settings page
+- OpenAI API key management
+- Custom model and prompt template configuration
+
+## Features
+
+- Select text on any webpage and press `Shift` to open the translation modal
+- Show translation near the selected text
+- Copy original or translated text
+- Read original and translated text aloud
+- Toggle speech on/off from the same button
+- Stop speech automatically when the modal closes
+- Keep the modal inside the viewport, even near the bottom of the screen
+
+## Tech Stack
 
 - `Chrome Extension Manifest V3`
 - `TypeScript`
@@ -15,134 +30,153 @@ Chrome Extension dịch nhanh nội dung trên trang web:
 - `Tailwind CSS`
 - `Vite`
 - `Vitest`
+- `Lucide`
 
-## Cấu trúc chính
+## Project Structure
 
 ```text
 src/
-  background/      service worker, translate flow, gọi OpenAI
-  content/         bắt sự kiện chọn text + Ctrl, render popup nổi
-  options/         trang Dashboard & Settings
-  shared/          type, storage, prompt builder, parser, language detect
-tests/             test cho logic cốt lõi
+  background/    background translation flow and OpenAI integration
+  content/       content script and floating translation modal
+  options/       dashboard and settings page
+  shared/        shared types, storage, prompt builder, language helpers
+tests/           unit tests
 ```
 
-## Cài đặt
+## Installation
+
+### 1. Install dependencies
 
 ```bash
 npm install
 ```
 
-## Chạy test
+### 2. Run tests
 
 ```bash
 npm test
 ```
 
-## Build extension
+### 3. Build the extension
 
 ```bash
 npm run build
 ```
 
-Sau khi build xong, thư mục output là `dist/`.
+Build output is generated in [dist](/Users/minhphan46/Desktop/Projects/translate-extension/dist).
 
-## Load vào Chrome
+## Load the Extension in Chrome
 
-1. Mở `chrome://extensions`
-2. Bật `Developer mode`
-3. Chọn `Load unpacked`
-4. Trỏ tới thư mục [dist](/Users/minhphan46/Desktop/Projects/translate-extension/dist)
+1. Open `chrome://extensions`
+2. Turn on `Developer mode`
+3. Click `Load unpacked`
+4. Select [dist](/Users/minhphan46/Desktop/Projects/translate-extension/dist)
 
-## Cách dùng
+## Configuration
 
-### 1. Mở trang Dashboard / Settings
+### Open the settings page
 
-- Sau khi load extension, vào phần chi tiết extension.
-- Chọn `Extension options`.
-- Hoặc trong popup dịch, bấm nút `Settings`.
+You can open the settings page in either of these ways:
 
-### 2. Thêm OpenAI API Key
+1. From the Chrome extension details page, click `Extension options`
+2. From the translation modal, click the `Settings` icon
 
-Vào tab `Settings`:
+### Add an OpenAI API key
 
-1. Nhập `Label`
-2. Nhập `Input API Key OpenAI`
-3. Nhập `Model`
-4. Nhập `Prompt Template` nếu muốn custom
-5. Bấm `Save`
+In the `Settings` tab:
 
-Lưu ý:
+1. Enter a label
+2. Enter your OpenAI API key
+3. Enter the model name
+4. Optionally enter a custom prompt template
+5. Click `Save`
 
-- Nếu `Prompt Template` để trống, hệ thống dùng prompt mặc định.
-- Prompt custom nên chứa placeholder `{{text}}`.
+### Prompt template
 
-Ví dụ:
+If the prompt template is empty, the extension uses the default prompt from [prompt.ts](/Users/minhphan46/Desktop/Projects/translate-extension/src/shared/prompt.ts).
+
+For custom prompts, include `{{text}}` where the selected text should be inserted.
+
+Example:
 
 ```text
-Hãy dịch đoạn sau sang tiếng Anh và cho tôi 3 option tự nhiên, ngắn gọn:
+Translate the following Vietnamese text into 3 natural English options:
 {{text}}
 ```
 
-### 3. Dịch trên trang web
+## How to Use
 
-1. Bôi đen đoạn text trên bất kỳ trang web nào
-2. Nhấn `Ctrl`
-3. Popup nổi sẽ hiện:
-   - `Original`
-   - `Translated text` hoặc `3 options`
-   - nút `Speak`
-   - nút `Copy`
-   - nút `Settings`
+### Translate text on a webpage
 
-### 4. Hành vi dịch
+1. Select any text on a webpage
+2. Press `Shift`
+3. The translation modal will appear near the selected text
 
-- Nếu text là tiếng Việt:
-  - Extension gọi OpenAI
-  - Trả về `3` phương án tiếng Anh
-  - Người dùng bấm chọn option muốn dùng
-  - Bấm `Copy` để copy option đã chọn
+### Translation behavior
 
-- Nếu text là ngôn ngữ khác tiếng Việt:
-  - Extension auto-detect ngôn ngữ nguồn
-  - Gọi Google Translate endpoint với `sl=auto`
-  - Trả về `1` bản dịch tiếng Việt
+#### Vietnamese to English
 
-## Prompt mặc định
+- Uses OpenAI
+- Returns `3` English options
+- Lets the user choose the best option
 
-Khi không nhập prompt template, extension dùng prompt mặc định trong [prompt.ts](/Users/minhphan46/Desktop/Projects/translate-extension/src/shared/prompt.ts).
+#### Other languages to Vietnamese
 
-## TDD đã áp dụng
+- Auto-detects the source language
+- Uses Google Translate endpoint with `sl=auto`
+- Returns a Vietnamese translation
 
-Test được viết cho các phần cốt lõi trước khi nối UI:
+### Modal actions
 
-- detect hướng dịch `VI/foreign`
-- build prompt mặc định / prompt custom
-- parse `3` option từ OpenAI response
-- storage settings / API key
-- hành vi popup copy option đã chọn
+The modal supports:
 
-Test nằm trong thư mục [tests](/Users/minhphan46/Desktop/Projects/translate-extension/tests).
+- `Speak original`
+- `Copy original`
+- `Speak translation`
+- `Copy translation`
+- `Open settings`
 
-## File quan trọng
+Speech behavior:
 
-- Manifest: [manifest.json](/Users/minhphan46/Desktop/Projects/translate-extension/src/manifest.json)
-- Background translate flow: [translator.ts](/Users/minhphan46/Desktop/Projects/translate-extension/src/background/translator.ts)
-- OpenAI integration: [openai.ts](/Users/minhphan46/Desktop/Projects/translate-extension/src/background/openai.ts)
-- Content script: [index.ts](/Users/minhphan46/Desktop/Projects/translate-extension/src/content/index.ts)
-- Overlay popup: [overlay.ts](/Users/minhphan46/Desktop/Projects/translate-extension/src/content/overlay.ts)
-- Dashboard/Settings UI: [App.tsx](/Users/minhphan46/Desktop/Projects/translate-extension/src/options/App.tsx)
+- Click the speaker icon once to start reading
+- Click the same speaker icon again to stop
+- If the modal closes, speech stops automatically
 
-## Ghi chú kỹ thuật
-
-- `VI -> EN` cần OpenAI API key hợp lệ.
-- `foreign -> VI` dùng Google Translate endpoint với source language auto-detect.
-- Shortcut hiện tại dùng phím `Ctrl` đúng theo yêu cầu file `rq.md`.
-- Popup dịch render gần vùng text được bôi đen.
-
-## Lệnh hữu ích
+## Development Commands
 
 ```bash
+npm install
 npm test
 npm run build
 ```
+
+## Important Files
+
+- Manifest: [manifest.json](/Users/minhphan46/Desktop/Projects/translate-extension/src/manifest.json)
+- Background translator: [translator.ts](/Users/minhphan46/Desktop/Projects/translate-extension/src/background/translator.ts)
+- OpenAI integration: [openai.ts](/Users/minhphan46/Desktop/Projects/translate-extension/src/background/openai.ts)
+- Content script: [index.ts](/Users/minhphan46/Desktop/Projects/translate-extension/src/content/index.ts)
+- Floating modal UI: [overlay.ts](/Users/minhphan46/Desktop/Projects/translate-extension/src/content/overlay.ts)
+- Dashboard and settings UI: [App.tsx](/Users/minhphan46/Desktop/Projects/translate-extension/src/options/App.tsx)
+
+## Notes
+
+- `Vietnamese -> English` requires a valid OpenAI API key
+- `Foreign language -> Vietnamese` does not require OpenAI
+- The current shortcut is `Shift`
+- The modal is positioned near the selected text and stays within the viewport
+
+## Testing
+
+The project follows a TDD-style workflow for core logic.
+
+Current test coverage includes:
+
+- language direction detection
+- prompt generation
+- OpenAI option parsing
+- settings storage
+- modal rendering
+- modal loading and update flow
+- modal viewport positioning
+- speaker state switching
