@@ -12,6 +12,7 @@ export interface ExtensionSettings {
   activeKeyId: string;
   model: string;
   promptTemplate: string;
+  enableAiVietnameseToEnglishOptions: boolean;
 }
 
 export interface TranslationResult {

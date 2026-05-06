@@ -16,7 +16,8 @@ function createEmptyState(): ExtensionSettings {
     keys: [],
     activeKeyId: EMPTY_KEY,
     model: DEFAULT_MODEL,
-    promptTemplate: ""
+    promptTemplate: "",
+    enableAiVietnameseToEnglishOptions: false
   };
 }
 
@@ -35,6 +36,7 @@ export function App() {
   const [apiKey, setApiKey] = useState("");
   const [model, setModel] = useState(DEFAULT_MODEL);
   const [promptTemplate, setPromptTemplate] = useState("");
+  const [enableAiVietnameseToEnglishOptions, setEnableAiVietnameseToEnglishOptions] = useState(false);
   const [status, setStatus] = useState("Ready");
 
   useEffect(() => {
@@ -43,6 +45,7 @@ export function App() {
       setSettings(nextSettings);
       setModel(nextSettings.model);
       setPromptTemplate(nextSettings.promptTemplate);
+      setEnableAiVietnameseToEnglishOptions(nextSettings.enableAiVietnameseToEnglishOptions);
     })();
   }, []);
 
@@ -74,7 +77,8 @@ export function App() {
       keys: [nextKey, ...settings.keys],
       activeKeyId: settings.activeKeyId || nextKey.id,
       model,
-      promptTemplate
+      promptTemplate,
+      enableAiVietnameseToEnglishOptions
     };
 
     await saveSettings(nextSettings);
@@ -83,11 +87,22 @@ export function App() {
   }
 
   async function handleActivate(id: string): Promise<void> {
-    await saveSettings({ ...settings, activeKeyId: id, model, promptTemplate });
+    await saveSettings({
+      ...settings,
+      activeKeyId: id,
+      model,
+      promptTemplate,
+      enableAiVietnameseToEnglishOptions
+    });
   }
 
   async function handleSavePreferences(): Promise<void> {
-    await saveSettings({ ...settings, model, promptTemplate });
+    await saveSettings({
+      ...settings,
+      model,
+      promptTemplate,
+      enableAiVietnameseToEnglishOptions
+    });
   }
 
   return (
@@ -104,9 +119,9 @@ export function App() {
                   Chrome translation workflow for daily browsing.
                 </h1>
                 <p className="mt-4 text-sm leading-7 text-slate-300">
-                  Select text, press <span className="font-semibold text-white">Ctrl</span>, get polished
-                  translation fast. Vietnamese to English uses OpenAI. English to Vietnamese uses
-                  translation library.
+                  Select text, press <span className="font-semibold text-white">Shift</span>, get polished
+                  translation fast. Vietnamese to English can use AI options or fallback translation.
+                  Other languages auto-detect and translate to Vietnamese.
                 </p>
                 <div className="mt-8 flex flex-col gap-3">
                   <button
@@ -143,8 +158,19 @@ export function App() {
                       <h2 className="font-display text-3xl font-semibold">Dashboard</h2>
                       <p className="mt-2 text-sm text-slate-500">Configured API keys and active model.</p>
                     </div>
+                    <div className="flex gap-2">
+                    <div
+                      className={`rounded-full px-4 py-2 text-sm font-semibold ${
+                        settings.enableAiVietnameseToEnglishOptions
+                          ? "bg-green-50 text-green-700"
+                          : "bg-red-50 text-red-700"
+                      }`}
+                    >
+                      {settings.enableAiVietnameseToEnglishOptions ? "AI Enabled" : "AI Disabled"}
+                    </div>
                     <div className="rounded-full bg-teal-50 px-4 py-2 text-sm font-semibold text-teal-700">
                       {activeKey ? `Active: ${activeKey.label}` : "No active key"}
+                    </div>
                     </div>
                   </div>
 
@@ -189,6 +215,14 @@ export function App() {
                         {settings.promptTemplate || DEFAULT_PROMPT_TEMPLATE}
                       </p>
                     </div>
+                    {/* <div className="rounded-[24px] border border-slate-200 bg-white p-6">
+                      <h3 className="text-lg font-semibold text-slate-900">AI English options</h3>
+                      <p className="mt-3 text-sm text-slate-600">
+                        {settings.enableAiVietnameseToEnglishOptions
+                          ? "Enabled. Vietnamese to English can return 3 OpenAI options when API key is available."
+                          : "Disabled. Vietnamese to English uses normal translation only."}
+                      </p>
+                    </div> */}
                   </div>
                 </div>
               ) : (
@@ -252,6 +286,21 @@ export function App() {
                             className="min-h-48 rounded-3xl border border-slate-200 px-4 py-3 text-sm outline-none ring-0 transition focus:border-teal-500"
                             placeholder="Use {{text}} for selected content. Leave empty for default prompt."
                           />
+                        </label>
+                        <label className="flex items-start gap-3 rounded-3xl border border-slate-200 px-4 py-4 text-sm text-slate-700">
+                          <input
+                            type="checkbox"
+                            checked={enableAiVietnameseToEnglishOptions}
+                            onChange={(event) =>
+                              setEnableAiVietnameseToEnglishOptions(event.target.checked)
+                            }
+                            className="mt-1 h-4 w-4 accent-teal-600"
+                          />
+                          <span>
+                            <span className="block font-semibold text-slate-900">
+                              Enable AI options for Vietnamese to English
+                            </span>
+                          </span>
                         </label>
                         <button
                           type="button"

@@ -7,7 +7,8 @@ const DEFAULT_SETTINGS: ExtensionSettings = {
   keys: [],
   activeKeyId: "",
   model: DEFAULT_MODEL,
-  promptTemplate: ""
+  promptTemplate: "",
+  enableAiVietnameseToEnglishOptions: false
 };
 
 export const extensionStorage = {

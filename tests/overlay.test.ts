@@ -102,4 +102,29 @@ describe("createTranslationOverlay", () => {
     overlay.setSpeaking(null);
     expect(speakOriginal.style.color).toBe("rgb(51, 65, 85)");
   });
+
+  it("supports dragging the modal", () => {
+    Object.defineProperty(window, "innerWidth", { value: 1200, configurable: true });
+    Object.defineProperty(window, "innerHeight", { value: 900, configurable: true });
+
+    const overlay = createTranslationOverlay({
+      originalText: "drag me",
+      direction: "vi-to-en",
+      anchorRect: new DOMRect(300, 300, 120, 24),
+      onCopy: vi.fn(),
+      onOpenSettings: vi.fn(),
+      onSpeakToggle: vi.fn()
+    });
+
+    document.body.appendChild(overlay.element);
+    const beforeLeft = Number.parseFloat(overlay.element.style.left);
+    const beforeTop = Number.parseFloat(overlay.element.style.top);
+
+    fireEvent.mouseDown(overlay.element.firstElementChild as Element, { clientX: beforeLeft + 20, clientY: beforeTop + 20 });
+    fireEvent.mouseMove(document, { clientX: beforeLeft + 120, clientY: beforeTop + 100 });
+    fireEvent.mouseUp(document);
+
+    expect(Number.parseFloat(overlay.element.style.left)).not.toBe(beforeLeft);
+    expect(Number.parseFloat(overlay.element.style.top)).not.toBe(beforeTop);
+  });
 });

@@ -24,6 +24,11 @@ interface OverlayHandle {
   destroy: () => void;
 }
 
+interface PositionBox {
+  left: number;
+  top: number;
+}
+
 function resolveIcon(icon: "volume" | "pause" | "copy" | "settings") {
   if (icon === "volume") {
     return Volume2;
@@ -93,9 +98,8 @@ function setIcon(button: HTMLButtonElement, icon: "volume" | "pause" | "copy" | 
   button.appendChild(svg);
 }
 
-function positionOverlay(root: HTMLDivElement, card: HTMLDivElement, anchorRect: DOMRect): void {
+function clampOverlayPosition(card: HTMLDivElement, position: PositionBox): PositionBox {
   const viewportPadding = 12;
-  const gap = 12;
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
   const maxCardHeight = Math.max(220, viewportHeight - viewportPadding * 2);
@@ -103,7 +107,44 @@ function positionOverlay(root: HTMLDivElement, card: HTMLDivElement, anchorRect:
   card.style.maxHeight = `${maxCardHeight}px`;
 
   const overlayWidth = Math.ceil(card.getBoundingClientRect().width || 500);
-  const overlayHeight = Math.ceil(card.getBoundingClientRect().height || Math.min(card.scrollHeight, maxCardHeight));
+  const overlayHeight = Math.ceil(
+    card.getBoundingClientRect().height || Math.min(card.scrollHeight, maxCardHeight)
+  );
+
+  const left = Math.min(
+    Math.max(viewportPadding, position.left),
+    Math.max(viewportPadding, viewportWidth - overlayWidth - viewportPadding)
+  );
+  const top = Math.min(
+    Math.max(viewportPadding, position.top),
+    Math.max(viewportPadding, viewportHeight - overlayHeight - viewportPadding)
+  );
+
+  return { left, top };
+}
+
+function positionOverlay(
+  root: HTMLDivElement,
+  card: HTMLDivElement,
+  anchorRect: DOMRect,
+  manualPosition?: PositionBox | null
+): PositionBox {
+  const viewportPadding = 12;
+  const gap = 12;
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+
+  if (manualPosition) {
+    const clamped = clampOverlayPosition(card, manualPosition);
+    root.style.left = `${clamped.left}px`;
+    root.style.top = `${clamped.top}px`;
+    return clamped;
+  }
+
+  const overlayWidth = Math.ceil(card.getBoundingClientRect().width || 500);
+  const overlayHeight = Math.ceil(
+    card.getBoundingClientRect().height || Math.min(card.scrollHeight, Math.max(220, viewportHeight - viewportPadding * 2))
+  );
 
   let left = anchorRect.right - overlayWidth;
   if (left < viewportPadding) {
@@ -124,6 +165,7 @@ function positionOverlay(root: HTMLDivElement, card: HTMLDivElement, anchorRect:
 
   root.style.left = `${left}px`;
   root.style.top = `${top}px`;
+  return { left, top };
 }
 
 export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
@@ -135,6 +177,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
   root.style.fontFamily = "Manrope, ui-sans-serif, system-ui, sans-serif";
   root.style.opacity = "1";
   root.style.color = "#0f172a";
+  root.style.cursor = "default";
 
   const card = document.createElement("div");
   card.style.width = "500px";
@@ -147,6 +190,10 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
   card.style.border = "1px solid rgba(226, 232, 240, 0.95)";
   card.style.boxShadow = "0 28px 90px rgba(15, 23, 42, 0.22)";
   root.appendChild(card);
+  let manualPosition: PositionBox | null = null;
+  let isDragging = false;
+  let dragOffsetX = 0;
+  let dragOffsetY = 0;
   positionOverlay(root, card, params.anchorRect);
 
   const body = document.createElement("div");
@@ -291,6 +338,50 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
 
   translatedActions.append(speakTranslated, copyButton, settingsButton);
 
+  function isInteractiveTarget(target: EventTarget | null): boolean {
+    return target instanceof HTMLElement && Boolean(target.closest("button"));
+  }
+
+  function handleDragMove(event: MouseEvent): void {
+    if (!isDragging) {
+      return;
+    }
+
+    manualPosition = clampOverlayPosition(card, {
+      left: event.clientX - dragOffsetX,
+      top: event.clientY - dragOffsetY
+    });
+    root.style.left = `${manualPosition.left}px`;
+    root.style.top = `${manualPosition.top}px`;
+  }
+
+  function handleDragEnd(): void {
+    if (!isDragging) {
+      return;
+    }
+
+    isDragging = false;
+    card.style.cursor = "grab";
+    document.removeEventListener("mousemove", handleDragMove);
+    document.removeEventListener("mouseup", handleDragEnd);
+  }
+
+  card.style.cursor = "grab";
+  card.addEventListener("mousedown", (event) => {
+    if (isInteractiveTarget(event.target)) {
+      return;
+    }
+
+    isDragging = true;
+    const rect = root.getBoundingClientRect();
+    dragOffsetX = event.clientX - rect.left;
+    dragOffsetY = event.clientY - rect.top;
+    card.style.cursor = "grabbing";
+    document.addEventListener("mousemove", handleDragMove);
+    document.addEventListener("mouseup", handleDragEnd);
+    event.preventDefault();
+  });
+
   function paintSpeakerButton(
     button: HTMLButtonElement,
     isActive: boolean,
@@ -380,7 +471,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
 
     setActionAvailability(Boolean(selectedText));
     syncSpeakerButtons();
-    positionOverlay(root, card, params.anchorRect);
+    manualPosition = positionOverlay(root, card, params.anchorRect, manualPosition);
   }
 
   function setStatus(message: string, tone: "muted" | "error" = "muted"): void {
@@ -399,7 +490,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
       speakingTarget = null;
     }
     syncSpeakerButtons();
-    positionOverlay(root, card, params.anchorRect);
+    manualPosition = positionOverlay(root, card, params.anchorRect, manualPosition);
   }
 
   setStatus("Loading translation...");
@@ -421,6 +512,9 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
       speakingTarget = id;
       syncSpeakerButtons();
     },
-    destroy: () => root.remove()
+    destroy: () => {
+      handleDragEnd();
+      root.remove();
+    }
   };
 }

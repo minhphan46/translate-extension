@@ -38,6 +38,7 @@ describe("extensionStorage", () => {
     expect(settings.model).toBe(DEFAULT_MODEL);
     expect(settings.promptTemplate).toBe("");
     expect(settings.keys).toEqual([]);
+    expect(settings.enableAiVietnameseToEnglishOptions).toBe(false);
   });
 
   it("adds api key to collection", async () => {
@@ -45,7 +46,8 @@ describe("extensionStorage", () => {
       activeKeyId: "",
       keys: [{ id: "1", label: "Main", apiKey: "sk-1" }],
       model: DEFAULT_MODEL,
-      promptTemplate: ""
+      promptTemplate: "",
+      enableAiVietnameseToEnglishOptions: true
     });
 
     const settings = await extensionStorage.getSettings();
