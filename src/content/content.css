@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html.translate-extension-lock,
+body.translate-extension-lock {
+  overflow: visible;
+}

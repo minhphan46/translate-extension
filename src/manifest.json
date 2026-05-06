@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Translate Extension",
+  "description": "Quick EN/VI translator with OpenAI-powered Vietnamese to English options.",
+  "version": "0.1.0",
+  "permissions": ["storage", "activeTab", "scripting", "clipboardWrite"],
+  "host_permissions": ["https://api.openai.com/*", "https://translate.googleapis.com/*", "<all_urls>"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "options_page": "src/options/index.html",
+  "action": {
+    "default_title": "Translate Extension"
+  }
+}
