@@ -6,6 +6,8 @@ import "./content.css";
 let activeOverlay: ReturnType<typeof createTranslationOverlay> | null = null;
 let activeUtterance: SpeechSynthesisUtterance | null = null;
 let activeSpeechTarget: "original" | "translation" | null = null;
+let isShiftPressed = false;
+let isStandaloneShiftPress = false;
 const LOG_PREFIX = "[Translate Extension]";
 const VIETNAMESE_PATTERN =
   /[ăâđêôơưàáạảãằắặẳẵầấậẩẫèéẹẻẽềếệểễìíịỉĩòóọỏõồốộổỗờớợởỡùúụủũừứựửữỳýỵỷỹ]/i;
@@ -235,15 +237,54 @@ async function handleShortcut(): Promise<void> {
 }
 
 window.addEventListener("keydown", (event) => {
-  if (event.key !== "Shift") {
+  if (event.key === "Shift") {
+    if (event.repeat) {
+      return;
+    }
+
+    isShiftPressed = true;
+    isStandaloneShiftPress = !event.altKey && !event.ctrlKey && !event.metaKey;
+    debugLog("shift keydown captured", {
+      key: event.key,
+      target: (event.target as HTMLElement | null)?.tagName ?? null,
+      defaultPrevented: event.defaultPrevented,
+      isStandaloneShiftPress
+    });
     return;
   }
 
-  debugLog("keydown captured", {
+  if (!isShiftPressed) {
+    return;
+  }
+
+  isStandaloneShiftPress = false;
+  debugLog("shift shortcut cancelled by secondary key", {
     key: event.key,
     target: (event.target as HTMLElement | null)?.tagName ?? null,
     defaultPrevented: event.defaultPrevented
   });
+}, true);
+
+window.addEventListener("keyup", (event) => {
+  if (event.key !== "Shift") {
+    return;
+  }
+
+  const shouldHandleShortcut = isShiftPressed && isStandaloneShiftPress;
+  isShiftPressed = false;
+  isStandaloneShiftPress = false;
+
+  debugLog("shift keyup captured", {
+    key: event.key,
+    target: (event.target as HTMLElement | null)?.tagName ?? null,
+    defaultPrevented: event.defaultPrevented,
+    shouldHandleShortcut
+  });
+
+  if (!shouldHandleShortcut) {
+    return;
+  }
+
   void handleShortcut();
 }, true);
 
