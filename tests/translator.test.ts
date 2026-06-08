@@ -52,6 +52,10 @@ describe("translateSelection", () => {
       promptTemplate: "",
       enableAiVietnameseToEnglishOptions: true
     });
+    vi.spyOn(global, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => [[["Google option"]]]
+    } as Response);
     vi.spyOn(openaiModule, "translateVietnameseToEnglish").mockResolvedValue([
       "Option one",
       "Option two",
@@ -60,8 +64,19 @@ describe("translateSelection", () => {
 
     const result = await translateSelection("Nhạc chữa bệnh giúp thư giãn");
 
-    expect(result.translatedText).toBe("Option one");
-    expect(result.translatedOptions).toHaveLength(3);
+    expect(result.translatedText).toBe("Google option");
+    expect(result.translatedOptions).toEqual([
+      "Google option",
+      "Option one",
+      "Option two",
+      "Option three"
+    ]);
+    expect(result.translationOptions?.map((option) => option.source)).toEqual([
+      "google",
+      "gpt",
+      "gpt",
+      "gpt"
+    ]);
     expect(openaiModule.translateVietnameseToEnglish).toHaveBeenCalled();
   });
 });

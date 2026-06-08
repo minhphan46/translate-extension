@@ -1,11 +1,26 @@
 import type { RuntimeMessage, RuntimeResponse } from "../shared/messages";
 import { translateSelection } from "./translator";
 
-chrome.runtime.onMessage.addListener((message: RuntimeMessage, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message: RuntimeMessage, sender, sendResponse) => {
   void (async () => {
     try {
       if (message.type === "TRANSLATE_SELECTION") {
-        const data = await translateSelection(message.payload.text);
+        const requestId = message.payload.requestId;
+        const tabId = sender.tab?.id;
+        const data = await translateSelection(message.payload.text, (result) => {
+          const sendTabMessage = chrome.tabs?.sendMessage;
+
+          if (!requestId || tabId === undefined || !sendTabMessage) {
+            return;
+          }
+
+          void sendTabMessage
+            .call(chrome.tabs, tabId, {
+              type: "TRANSLATION_PARTIAL",
+              payload: { requestId, result }
+            } satisfies RuntimeMessage)
+            .catch(() => undefined);
+        });
         sendResponse({ ok: true, data } satisfies RuntimeResponse);
         return;
       }

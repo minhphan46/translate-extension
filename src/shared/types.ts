@@ -1,4 +1,5 @@
 export type TranslationDirection = "vi-to-en" | "foreign-to-vi" | "unknown";
+export type TranslationOptionSource = "google" | "gpt";
 
 export interface ApiKeyRecord {
   id: string;
@@ -19,5 +20,12 @@ export interface TranslationResult {
   originalText: string;
   translatedText: string;
   translatedOptions?: string[];
+  translationOptions?: TranslationOption[];
   direction: TranslationDirection;
+}
+
+export interface TranslationOption {
+  text: string;
+  source?: TranslationOptionSource;
+  label?: string;
 }

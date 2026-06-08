@@ -1,9 +1,10 @@
 import type { RuntimeMessage, RuntimeResponse } from "../shared/messages";
-import type { TranslationResult } from "../shared/types";
+import type { TranslationOption, TranslationResult } from "../shared/types";
 import { createTranslationOverlay } from "./overlay";
 import "./content.css";
 
 let activeOverlay: ReturnType<typeof createTranslationOverlay> | null = null;
+let activeTranslationRequestId: string | null = null;
 let activeUtterance: SpeechSynthesisUtterance | null = null;
 let activeSpeechTarget: "original" | "translation" | null = null;
 let isShiftPressed = false;
@@ -44,6 +45,7 @@ function destroyOverlay(): void {
   stopSpeaking();
   activeOverlay?.destroy();
   activeOverlay = null;
+  activeTranslationRequestId = null;
 }
 
 function getSelectedText(): string {
@@ -134,11 +136,34 @@ function speakText(id: "original" | "translation", text: string, lang: string): 
   window.speechSynthesis.speak(utterance);
 }
 
-async function requestTranslation(text: string): Promise<TranslationResult> {
+function createRequestId(): string {
+  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+}
+
+function getRenderableOptions(result: TranslationResult): TranslationOption[] {
+  if (result.translationOptions?.length) {
+    return result.translationOptions;
+  }
+
+  return (result.translatedOptions ?? [result.translatedText]).map((text) => ({ text }));
+}
+
+function hasGptOption(options: TranslationOption[]): boolean {
+  return options.some((option) => option.source === "gpt");
+}
+
+function renderTranslationResult(result: TranslationResult, showGptLoading = false): void {
+  activeOverlay?.setTranslations(
+    getRenderableOptions(result),
+    showGptLoading ? "GPT is translating..." : undefined
+  );
+}
+
+async function requestTranslation(text: string, requestId: string): Promise<TranslationResult> {
   debugLog("Sending translation request", { textLength: text.length, preview: text.slice(0, 80) });
   const response = (await chrome.runtime.sendMessage({
     type: "TRANSLATE_SELECTION",
-    payload: { text }
+    payload: { text, requestId }
   } satisfies RuntimeMessage)) as RuntimeResponse;
 
   if (!response.ok || !response.data) {
@@ -148,7 +173,7 @@ async function requestTranslation(text: string): Promise<TranslationResult> {
 
   debugLog("Translation request success", {
     direction: response.data.direction,
-    optionCount: response.data.translatedOptions?.length ?? 1
+    optionCount: response.data.translationOptions?.length ?? response.data.translatedOptions?.length ?? 1
   });
   return response.data;
 }
@@ -222,19 +247,47 @@ async function handleShortcut(): Promise<void> {
   }
 
   try {
+    const requestId = createRequestId();
     const overlay = mountLoadingOverlay(
       selectedText,
       anchorRect,
       detectSelectionDirection(selectedText)
     );
-    const result = await requestTranslation(selectedText);
-    overlay.setTranslations(result.translatedOptions ?? [result.translatedText]);
+    activeTranslationRequestId = requestId;
+    const result = await requestTranslation(selectedText, requestId);
+    if (activeTranslationRequestId === requestId && activeOverlay === overlay) {
+      renderTranslationResult(result);
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Translate failed.";
     debugLog("Handle shortcut failed", { message });
     activeOverlay?.setError(message);
   }
 }
+
+chrome.runtime.onMessage?.addListener?.((message: RuntimeMessage) => {
+  if (message.type !== "TRANSLATION_PARTIAL") {
+    return;
+  }
+
+  if (message.payload.requestId !== activeTranslationRequestId) {
+    debugLog("Ignoring stale translation partial", { requestId: message.payload.requestId });
+    return;
+  }
+
+  debugLog("Translation partial received", {
+    requestId: message.payload.requestId,
+    optionCount:
+      message.payload.result.translationOptions?.length ??
+      message.payload.result.translatedOptions?.length ??
+      1
+  });
+  const options = getRenderableOptions(message.payload.result);
+  renderTranslationResult(
+    message.payload.result,
+    message.payload.result.direction === "vi-to-en" && !hasGptOption(options)
+  );
+});
 
 window.addEventListener("keydown", (event) => {
   if (event.key === "Shift") {

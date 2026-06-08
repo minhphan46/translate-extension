@@ -1,9 +1,14 @@
 import createLucideElement from "lucide/dist/esm/createElement.mjs";
+import Check from "lucide/dist/esm/icons/check.mjs";
+import ClipboardList from "lucide/dist/esm/icons/clipboard-list.mjs";
 import Copy from "lucide/dist/esm/icons/copy.mjs";
 import Pause from "lucide/dist/esm/icons/pause.mjs";
 import Settings from "lucide/dist/esm/icons/settings.mjs";
 import Volume2 from "lucide/dist/esm/icons/volume-2.mjs";
-import type { TranslationDirection } from "../shared/types";
+import type { TranslationDirection, TranslationOption } from "../shared/types";
+
+type RenderableTranslationOption = string | TranslationOption;
+type IconName = "volume" | "pause" | "copy" | "copy-all" | "settings" | "check";
 
 interface OverlayParams {
   originalText: string;
@@ -18,7 +23,7 @@ interface OverlayHandle {
   element: HTMLDivElement;
   getSelectedText: () => string;
   setLoading: (label?: string) => void;
-  setTranslations: (options: string[]) => void;
+  setTranslations: (options: RenderableTranslationOption[], pendingLabel?: string) => void;
   setError: (message: string) => void;
   setSpeaking: (id: "original" | "translation" | null) => void;
   destroy: () => void;
@@ -29,7 +34,7 @@ interface PositionBox {
   top: number;
 }
 
-function resolveIcon(icon: "volume" | "pause" | "copy" | "settings") {
+function resolveIcon(icon: IconName) {
   if (icon === "volume") {
     return Volume2;
   }
@@ -42,10 +47,18 @@ function resolveIcon(icon: "volume" | "pause" | "copy" | "settings") {
     return Copy;
   }
 
+  if (icon === "copy-all") {
+    return ClipboardList;
+  }
+
+  if (icon === "check") {
+    return Check;
+  }
+
   return Settings;
 }
 
-function iconButton(label: string, icon: "volume" | "pause" | "copy" | "settings"): HTMLButtonElement {
+function iconButton(label: string, icon: IconName): HTMLButtonElement {
   const button = document.createElement("button");
   button.type = "button";
   button.setAttribute("aria-label", label);
@@ -83,7 +96,7 @@ function iconButton(label: string, icon: "volume" | "pause" | "copy" | "settings
   return button;
 }
 
-function setIcon(button: HTMLButtonElement, icon: "volume" | "pause" | "copy" | "settings"): void {
+function setIcon(button: HTMLButtonElement, icon: IconName): void {
   button.innerHTML = "";
   const svg = createLucideElement(resolveIcon(icon), {
     width: 12,
@@ -190,10 +203,20 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
   card.style.border = "1px solid rgba(226, 232, 240, 0.95)";
   card.style.boxShadow = "0 28px 90px rgba(15, 23, 42, 0.22)";
   root.appendChild(card);
+
+  const animationStyles = document.createElement("style");
+  animationStyles.textContent = `
+    @keyframes translate-extension-spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+  `;
+  root.appendChild(animationStyles);
   let manualPosition: PositionBox | null = null;
   let isDragging = false;
   let dragOffsetX = 0;
   let dragOffsetY = 0;
+  const copyFeedbackTimers = new Map<HTMLButtonElement, number>();
   positionOverlay(root, card, params.anchorRect);
 
   const body = document.createElement("div");
@@ -261,6 +284,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
   const copyOriginal = iconButton("Copy original", "copy");
   copyOriginal.addEventListener("click", async () => {
     await params.onCopy(params.originalText);
+    showCopyFeedback(copyOriginal, "Copy original", "copy");
   });
 
   originalActions.append(speakOriginal, copyOriginal);
@@ -298,6 +322,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
   translatedLabel.appendChild(translatedActions);
 
   let selectedText = "";
+  let translationTexts: string[] = [];
 
   const optionsContainer = document.createElement("div");
   optionsContainer.style.display = "grid";
@@ -330,13 +355,34 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
 
   const copyButton = iconButton("Copy translation", "copy");
   copyButton.addEventListener("click", async () => {
+    if (!selectedText) {
+      return;
+    }
+
     await params.onCopy(selectedText);
+    showCopyFeedback(copyButton, "Copy translation", "copy");
+  });
+
+  const copyAllButton =
+    params.direction === "vi-to-en" ? iconButton("Copy all translations", "copy-all") : null;
+  copyAllButton?.addEventListener("click", async () => {
+    if (!translationTexts.length) {
+      return;
+    }
+
+    await params.onCopy(translationTexts.join("\n"));
+    showCopyFeedback(copyAllButton, "Copy all translations", "copy-all");
   });
 
   const settingsButton = iconButton("Settings", "settings");
   settingsButton.addEventListener("click", params.onOpenSettings);
 
-  translatedActions.append(speakTranslated, copyButton, settingsButton);
+  translatedActions.append(
+    speakTranslated,
+    copyButton,
+    ...(copyAllButton ? [copyAllButton] : []),
+    settingsButton
+  );
 
   function isInteractiveTarget(target: EventTarget | null): boolean {
     return target instanceof HTMLElement && Boolean(target.closest("button"));
@@ -410,20 +456,130 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
   function setActionAvailability(isEnabled: boolean): void {
     speakTranslated.disabled = !isEnabled;
     copyButton.disabled = !isEnabled;
+    if (copyAllButton) {
+      copyAllButton.disabled = !isEnabled;
+    }
     speakTranslated.style.opacity = isEnabled ? "1" : "0.5";
     copyButton.style.opacity = isEnabled ? "1" : "0.5";
+    if (copyAllButton) {
+      copyAllButton.style.opacity = isEnabled ? "1" : "0.5";
+    }
     speakTranslated.style.cursor = isEnabled ? "pointer" : "not-allowed";
     copyButton.style.cursor = isEnabled ? "pointer" : "not-allowed";
+    if (copyAllButton) {
+      copyAllButton.style.cursor = isEnabled ? "pointer" : "not-allowed";
+    }
   }
 
-  function renderOptions(options: string[]): void {
+  function resetCopyFeedback(button: HTMLButtonElement, label: string, icon: IconName): void {
+    setIcon(button, icon);
+    button.setAttribute("aria-label", label);
+    button.title = label;
+    button.style.background = "#ffffff";
+    button.style.color = "#334155";
+    button.style.border = "1px solid #dbe4f0";
+    button.style.boxShadow = "0 8px 20px rgba(15, 23, 42, 0.06)";
+    button.style.transform = "";
+  }
+
+  function showCopyFeedback(button: HTMLButtonElement, label: string, icon: IconName): void {
+    const activeTimer = copyFeedbackTimers.get(button);
+    if (activeTimer !== undefined) {
+      window.clearTimeout(activeTimer);
+    }
+
+    button.setAttribute("aria-label", "Copied");
+    button.title = "Copied";
+    setIcon(button, "check");
+    button.style.background = "linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)";
+    button.style.color = "#ffffff";
+    button.style.border = "1px solid #0f766e";
+    button.style.boxShadow = "0 10px 24px rgba(20, 184, 166, 0.24)";
+    button.style.transform = "scale(1.12)";
+
+    window.setTimeout(() => {
+      button.style.transform = "scale(1)";
+    }, 140);
+
+    const resetTimer = window.setTimeout(() => {
+      copyFeedbackTimers.delete(button);
+      resetCopyFeedback(button, label, icon);
+    }, 900);
+    copyFeedbackTimers.set(button, resetTimer);
+  }
+
+  function getOptionText(option: RenderableTranslationOption): string {
+    return typeof option === "string" ? option : option.text;
+  }
+
+  function getOptionLabel(option: RenderableTranslationOption): string {
+    if (typeof option === "string") {
+      return "";
+    }
+
+    return option.label ?? (option.source === "google" ? "Google Translate" : option.source === "gpt" ? "GPT" : "");
+  }
+
+  function createPendingRow(label: string): HTMLDivElement {
+    const pendingRow = document.createElement("div");
+    pendingRow.setAttribute("aria-label", label);
+    pendingRow.style.borderRadius = "15px";
+    pendingRow.style.padding = "10px 12px";
+    pendingRow.style.display = "flex";
+    pendingRow.style.alignItems = "center";
+    pendingRow.style.gap = "10px";
+    pendingRow.style.background = "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)";
+    pendingRow.style.border = "1px dashed #99f6e4";
+    pendingRow.style.color = "#475569";
+
+    const spinner = document.createElement("span");
+    spinner.style.width = "14px";
+    spinner.style.height = "14px";
+    spinner.style.borderRadius = "999px";
+    spinner.style.border = "2px solid #ccfbf1";
+    spinner.style.borderTopColor = "#0f766e";
+    spinner.style.flex = "0 0 auto";
+    spinner.style.animation = "translate-extension-spin 900ms linear infinite";
+    pendingRow.appendChild(spinner);
+
+    const textWrap = document.createElement("span");
+    textWrap.style.display = "grid";
+    textWrap.style.gap = "2px";
+    textWrap.style.minWidth = "0";
+
+    const source = document.createElement("span");
+    source.textContent = "GPT";
+    source.style.fontSize = "10px";
+    source.style.fontWeight = "800";
+    source.style.lineHeight = "1.2";
+    source.style.letterSpacing = "0";
+    source.style.textTransform = "uppercase";
+    source.style.color = "#0f766e";
+    textWrap.appendChild(source);
+
+    const text = document.createElement("span");
+    text.textContent = label;
+    text.style.fontSize = "13px";
+    text.style.fontWeight = "700";
+    text.style.lineHeight = "1.4";
+    text.style.letterSpacing = "0";
+    text.style.color = "#475569";
+    textWrap.appendChild(text);
+
+    pendingRow.appendChild(textWrap);
+    return pendingRow;
+  }
+
+  function renderOptions(options: RenderableTranslationOption[], pendingLabel?: string): void {
     optionsContainer.innerHTML = "";
-    selectedText = options[0] ?? "";
+    translationTexts = options.map((option) => getOptionText(option)).filter(Boolean);
+    selectedText = options[0] ? getOptionText(options[0]) : "";
 
     options.forEach((option, index) => {
+      const optionText = getOptionText(option);
+      const optionLabel = getOptionLabel(option);
       const optionButton = document.createElement("button");
       optionButton.type = "button";
-      optionButton.textContent = option;
       optionButton.style.width = "100%";
       optionButton.style.appearance = "none";
       optionButton.style.borderRadius = "15px";
@@ -446,8 +602,29 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
       optionButton.style.boxShadow =
         index === 0 ? "0 12px 28px rgba(20, 184, 166, 0.16)" : "0 8px 20px rgba(15, 23, 42, 0.05)";
 
+      if (optionLabel) {
+        const label = document.createElement("span");
+        label.dataset.translationOptionLabel = "true";
+        label.textContent = optionLabel;
+        label.style.display = "block";
+        label.style.marginBottom = "4px";
+        label.style.fontSize = "10px";
+        label.style.fontWeight = "800";
+        label.style.lineHeight = "1.2";
+        label.style.letterSpacing = "0";
+        label.style.textTransform = "uppercase";
+        label.style.color = index === 0 ? "#0f766e" : "#64748b";
+        optionButton.appendChild(label);
+      }
+
+      const text = document.createElement("span");
+      text.textContent = optionText;
+      text.style.display = "block";
+      text.style.letterSpacing = "0";
+      optionButton.appendChild(text);
+
       optionButton.addEventListener("click", () => {
-        selectedText = option;
+        selectedText = optionText;
         Array.from(optionsContainer.children).forEach((child) => {
           if (child instanceof HTMLButtonElement) {
             child.style.background = "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)";
@@ -456,6 +633,11 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
             child.style.opacity = "1";
             child.style.fontWeight = "700";
             child.style.boxShadow = "0 8px 20px rgba(15, 23, 42, 0.05)";
+            child.querySelectorAll("[data-translation-option-label]").forEach((label) => {
+              if (label instanceof HTMLElement) {
+                label.style.color = "#64748b";
+              }
+            });
           }
         });
         optionButton.style.background = "linear-gradient(135deg, #ecfeff 0%, #f0fdfa 100%)";
@@ -464,10 +646,19 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
         optionButton.style.opacity = "1";
         optionButton.style.fontWeight = "800";
         optionButton.style.boxShadow = "0 12px 28px rgba(20, 184, 166, 0.16)";
+        optionButton.querySelectorAll("[data-translation-option-label]").forEach((label) => {
+          if (label instanceof HTMLElement) {
+            label.style.color = "#0f766e";
+          }
+        });
       });
 
       optionsContainer.appendChild(optionButton);
     });
+
+    if (pendingLabel) {
+      optionsContainer.appendChild(createPendingRow(pendingLabel));
+    }
 
     setActionAvailability(Boolean(selectedText));
     syncSpeakerButtons();
@@ -476,6 +667,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
 
   function setStatus(message: string, tone: "muted" | "error" = "muted"): void {
     optionsContainer.innerHTML = "";
+    translationTexts = [];
     statusMessage.textContent = message;
     statusMessage.style.background =
       tone === "error"
@@ -502,8 +694,8 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
     setLoading: (label = "Loading translation...") => {
       setStatus(label);
     },
-    setTranslations: (options) => {
-      renderOptions(options);
+    setTranslations: (options, pendingLabel) => {
+      renderOptions(options, pendingLabel);
     },
     setError: (message) => {
       setStatus(message, "error");
@@ -514,6 +706,8 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
     },
     destroy: () => {
       handleDragEnd();
+      copyFeedbackTimers.forEach((timer) => window.clearTimeout(timer));
+      copyFeedbackTimers.clear();
       root.remove();
     }
   };

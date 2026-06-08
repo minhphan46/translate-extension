@@ -1,4 +1,4 @@
-import { fireEvent, getByLabelText, getByText } from "@testing-library/dom";
+import { fireEvent, getByLabelText, getByText, queryByLabelText } from "@testing-library/dom";
 import { createTranslationOverlay } from "../src/content/overlay";
 
 describe("createTranslationOverlay", () => {
@@ -21,6 +21,98 @@ describe("createTranslationOverlay", () => {
     fireEvent.click(getByLabelText(document.body, "Copy translation"));
 
     expect(onCopy).toHaveBeenCalledWith("hi");
+  });
+
+  it("shows copied feedback before returning copy button to normal", async () => {
+    vi.useFakeTimers();
+    const onCopy = vi.fn(async () => {});
+
+    try {
+      const overlay = createTranslationOverlay({
+        originalText: "xin chao",
+        direction: "vi-to-en",
+        anchorRect: new DOMRect(100, 180, 120, 24),
+        onCopy,
+        onOpenSettings: vi.fn(),
+        onSpeakToggle: vi.fn()
+      });
+
+      document.body.appendChild(overlay.element);
+      overlay.setTranslations(["hello"]);
+
+      const copyButton = getByLabelText(document.body, "Copy translation") as HTMLButtonElement;
+      fireEvent.click(copyButton);
+      await Promise.resolve();
+
+      expect(getByLabelText(document.body, "Copied")).toBe(copyButton);
+      expect(copyButton.style.transform).toBe("scale(1.12)");
+
+      vi.advanceTimersByTime(140);
+      expect(copyButton.style.transform).toBe("scale(1)");
+
+      vi.advanceTimersByTime(760);
+      expect(getByLabelText(document.body, "Copy translation")).toBe(copyButton);
+      expect(copyButton.style.color).toBe("rgb(51, 65, 85)");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("copies all English options at once", async () => {
+    const onCopy = vi.fn(async () => {});
+    const overlay = createTranslationOverlay({
+      originalText: "xin chao",
+      direction: "vi-to-en",
+      anchorRect: new DOMRect(100, 180, 120, 24),
+      onCopy,
+      onOpenSettings: vi.fn(),
+      onSpeakToggle: vi.fn()
+    });
+
+    document.body.appendChild(overlay.element);
+    overlay.setTranslations(["hello", "hi", "good day"]);
+    fireEvent.click(getByLabelText(document.body, "Copy all translations"));
+
+    expect(onCopy).toHaveBeenCalledWith("hello\nhi\ngood day");
+  });
+
+  it("shows a GPT loading row without including it in copy all", async () => {
+    const onCopy = vi.fn(async () => {});
+    const overlay = createTranslationOverlay({
+      originalText: "xin chao",
+      direction: "vi-to-en",
+      anchorRect: new DOMRect(100, 180, 120, 24),
+      onCopy,
+      onOpenSettings: vi.fn(),
+      onSpeakToggle: vi.fn()
+    });
+
+    document.body.appendChild(overlay.element);
+    overlay.setTranslations(
+      [{ text: "hello", source: "google", label: "Google Translate" }],
+      "GPT is translating..."
+    );
+
+    expect(getByLabelText(document.body, "GPT is translating...")).toBeTruthy();
+    fireEvent.click(getByLabelText(document.body, "Copy all translations"));
+
+    expect(onCopy).toHaveBeenCalledWith("hello");
+  });
+
+  it("does not show copy all for foreign to Vietnamese results", () => {
+    const overlay = createTranslationOverlay({
+      originalText: "hello",
+      direction: "foreign-to-vi",
+      anchorRect: new DOMRect(100, 180, 120, 24),
+      onCopy: vi.fn(),
+      onOpenSettings: vi.fn(),
+      onSpeakToggle: vi.fn()
+    });
+
+    document.body.appendChild(overlay.element);
+    overlay.setTranslations(["xin chao"]);
+
+    expect(queryByLabelText(document.body, "Copy all translations")).toBeNull();
   });
 
   it("positions overlay near selection instead of viewport bottom", () => {
