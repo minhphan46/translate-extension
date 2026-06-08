@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "VITE_BUILD_TARGET=options vite build && VITE_BUILD_TARGET=content vite build && VITE_BUILD_TARGET=background vite build",
+    "build": "cross-env VITE_BUILD_TARGET=options vite build && cross-env VITE_BUILD_TARGET=content vite build && cross-env VITE_BUILD_TARGET=background vite build",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -23,6 +23,7 @@
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.20",
+    "cross-env": "^10.1.0",
     "jsdom": "^24.1.1",
     "postcss": "^8.4.41",
     "tailwindcss": "^3.4.10",
