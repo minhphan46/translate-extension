@@ -38,6 +38,29 @@ describe("translateSelection", () => {
     expect(openaiModule.translateVietnameseToEnglish).not.toHaveBeenCalled();
   });
 
+  it("preserves line breaks and indentation in Google fallback translations", async () => {
+    vi.spyOn(storageModule.extensionStorage, "getSettings").mockResolvedValue(createSettings({
+      enableAiVietnameseToEnglishOptions: false
+    }));
+    vi.spyOn(global, "fetch").mockImplementation(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input));
+      const sourceText = url.searchParams.get("q");
+      const translations: Record<string, string> = {
+        "- dòng một": "- line one",
+        "dòng hai": "line two"
+      };
+
+      return {
+        ok: true,
+        json: async () => [[[translations[sourceText ?? ""] ?? sourceText ?? ""]]]
+      } as Response;
+    });
+
+    const result = await translateSelection("  - dòng một\n\tdòng hai");
+
+    expect(result.translatedOptions).toEqual(["  - line one\n\tline two"]);
+  });
+
   it("uses fallback translation for Vietnamese to English when API key is missing", async () => {
     vi.spyOn(storageModule.extensionStorage, "getSettings").mockResolvedValue(createSettings({
       keys: [],

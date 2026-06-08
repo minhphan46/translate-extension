@@ -272,6 +272,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
   originalText.style.lineHeight = "1.55";
   originalText.style.color = "#0f172a";
   originalText.style.wordBreak = "break-word";
+  originalText.style.whiteSpace = "pre-wrap";
   originalBlock.appendChild(originalText);
 
   let speakingTarget: "original" | "translation" | null = null;
@@ -374,7 +375,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
       return;
     }
 
-    await params.onCopy(translationTexts.join("\n"));
+    await params.onCopy(translationTexts.join("\n\n"));
     showCopyFeedback(copyAllButton, "Copy all translations", "copy-all");
   });
 
@@ -673,6 +674,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
       text.textContent = optionText;
       text.style.display = "block";
       text.style.letterSpacing = "0";
+      text.style.whiteSpace = "pre-wrap";
       optionButton.appendChild(text);
 
       optionButton.addEventListener("click", () => {

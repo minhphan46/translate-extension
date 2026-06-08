@@ -73,7 +73,30 @@ describe("createTranslationOverlay", () => {
     overlay.setTranslations(["hello", "hi", "good day"]);
     fireEvent.click(getByLabelText(document.body, "Copy all translations"));
 
-    expect(onCopy).toHaveBeenCalledWith("hello\nhi\ngood day");
+    expect(onCopy).toHaveBeenCalledWith("hello\n\nhi\n\ngood day");
+  });
+
+  it("renders multiline translations with preserved whitespace", () => {
+    const overlay = createTranslationOverlay({
+      originalText: "1. xin chao\n2. tam biet",
+      direction: "vi-to-en",
+      anchorRect: new DOMRect(100, 180, 120, 24),
+      onCopy: vi.fn(),
+      onOpenSettings: vi.fn(),
+      onSpeakToggle: vi.fn()
+    });
+
+    document.body.appendChild(overlay.element);
+    overlay.setTranslations(["1. hello\n2. goodbye"]);
+
+    const multilineElements = Array.from(document.body.querySelectorAll("p, span")).filter(
+      (element): element is HTMLElement => element instanceof HTMLElement
+    );
+    const original = multilineElements.find((element) => element.textContent === "1. xin chao\n2. tam biet");
+    const translation = multilineElements.find((element) => element.textContent === "1. hello\n2. goodbye");
+
+    expect(original?.style.whiteSpace).toBe("pre-wrap");
+    expect(translation?.style.whiteSpace).toBe("pre-wrap");
   });
 
   it("shows a GPT loading row without including it in copy all", async () => {

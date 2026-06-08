@@ -33,12 +33,63 @@ async function translateWithGoogle(
   return translatedText;
 }
 
+async function translateWithGooglePreservingLines(
+  text: string,
+  sourceLanguage: "auto" | "vi",
+  targetLanguage: "vi" | "en",
+  emptyMessage: string
+): Promise<string> {
+  const parts = text.split(/(\r\n|\n|\r)/u);
+  const translatedParts = await Promise.all(
+    parts.map(async (part) => {
+      if (part === "\n" || part === "\r" || part === "\r\n" || !part.trim()) {
+        return part;
+      }
+
+      const whitespace = part.match(/^(\s*)([\s\S]*?)(\s*)$/u);
+      const leadingWhitespace = whitespace?.[1] ?? "";
+      const textContent = whitespace?.[2] ?? part;
+      const trailingWhitespace = whitespace?.[3] ?? "";
+
+      if (!textContent.trim()) {
+        return part;
+      }
+
+      const translatedText = await translateWithGoogle(
+        textContent,
+        sourceLanguage,
+        targetLanguage,
+        emptyMessage
+      );
+      return `${leadingWhitespace}${translatedText}${trailingWhitespace}`;
+    })
+  );
+
+  const translatedText = translatedParts.join("");
+
+  if (!translatedText.trim()) {
+    throw new Error(emptyMessage);
+  }
+
+  return translatedText;
+}
+
 async function translateForeignToVietnamese(text: string): Promise<string> {
-  return translateWithGoogle(text, "auto", "vi", "Unable to translate selected text to Vietnamese.");
+  return translateWithGooglePreservingLines(
+    text,
+    "auto",
+    "vi",
+    "Unable to translate selected text to Vietnamese."
+  );
 }
 
 async function translateVietnameseToEnglishFallback(text: string): Promise<string> {
-  return translateWithGoogle(text, "vi", "en", "Unable to translate selected text to English.");
+  return translateWithGooglePreservingLines(
+    text,
+    "vi",
+    "en",
+    "Unable to translate selected text to English."
+  );
 }
 
 function buildResult(
