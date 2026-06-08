@@ -1,7 +1,7 @@
 export type TranslationDirection = "vi-to-en" | "foreign-to-vi" | "unknown";
 export type TranslationAiProvider = "openai" | "gemini";
 export type TranslationOptionSource = "google" | "gpt" | "gemini";
-export type OverlayTheme = "transparent" | "white";
+export type OverlayTheme = "transparent" | "white" | "dark";
 
 export interface ApiKeyRecord {
   id: string;

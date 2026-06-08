@@ -551,11 +551,11 @@ export function App() {
                         <h3 className="text-lg font-semibold text-slate-900">Popup theme</h3>
                       </div>
                       <div className="rounded-full bg-teal-50 px-4 py-2 text-sm font-semibold text-teal-700">
-                        {overlayTheme === "transparent" ? "Transparent" : "White"}
+                        {overlayTheme === "transparent" ? "Transparent" : overlayTheme === "white" ? "White" : "Dark"}
                       </div>
                     </div>
 
-                    <div className="mt-5 grid gap-3 lg:grid-cols-2">
+                    <div className="mt-5 grid gap-3 md:grid-cols-3">
                       <label className="flex items-start gap-3 rounded-3xl border border-slate-200 px-4 py-4 text-sm text-slate-700">
                         <input
                           type="radio"
@@ -578,6 +578,18 @@ export function App() {
                         />
                         <span>
                           <span className="block font-semibold text-slate-900">White panel</span>
+                        </span>
+                      </label>
+                      <label className="flex items-start gap-3 rounded-3xl border border-slate-200 px-4 py-4 text-sm text-slate-700">
+                        <input
+                          type="radio"
+                          name="overlay-theme"
+                          checked={overlayTheme === "dark"}
+                          onChange={() => void handleSelectOverlayTheme("dark")}
+                          className="mt-1 h-4 w-4 accent-teal-600"
+                        />
+                        <span>
+                          <span className="block font-semibold text-slate-900">Dark glass</span>
                         </span>
                       </label>
                     </div>

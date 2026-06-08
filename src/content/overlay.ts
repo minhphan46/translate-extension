@@ -62,6 +62,10 @@ interface OverlayPalette {
   statusShadow: string;
   optionShadow: string;
   selectedOptionShadow: string;
+  textPrimary: string;
+  textSecondary: string;
+  textMuted: string;
+  textSelectedLabel: string;
 }
 
 const transparentPalette: OverlayPalette = {
@@ -89,7 +93,11 @@ const transparentPalette: OverlayPalette = {
   statusShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.12)",
   optionShadow: "0 8px 20px rgba(15, 23, 42, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.12)",
   selectedOptionShadow:
-    "0 12px 28px rgba(20, 184, 166, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.16)"
+    "0 12px 28px rgba(20, 184, 166, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.16)",
+  textPrimary: "#0f172a",
+  textSecondary: "#334155",
+  textMuted: "#64748b",
+  textSelectedLabel: "#0f766e"
 };
 
 const whitePalette: OverlayPalette = {
@@ -111,10 +119,41 @@ const whitePalette: OverlayPalette = {
   panelShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.8)",
   statusShadow: "",
   optionShadow: "0 8px 20px rgba(15, 23, 42, 0.05)",
-  selectedOptionShadow: "0 12px 28px rgba(20, 184, 166, 0.16)"
+  selectedOptionShadow: "0 12px 28px rgba(20, 184, 166, 0.16)",
+  textPrimary: "#0f172a",
+  textSecondary: "#334155",
+  textMuted: "#64748b",
+  textSelectedLabel: "#0f766e"
+};
+
+const darkPalette: OverlayPalette = {
+  cardBackground: "linear-gradient(145deg, rgba(15, 23, 42, 0.75) 0%, rgba(30, 41, 59, 0.55) 100%)",
+  cardBorder: "1px solid rgba(71, 85, 105, 0.3)",
+  cardShadow: "0 28px 90px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05)",
+  bodyBackground: "rgba(15, 23, 42, 0.4)",
+  panelBackground: "linear-gradient(145deg, rgba(30, 41, 59, 0.65) 0%, rgba(15, 23, 42, 0.45) 100%)",
+  mutedBackground: "linear-gradient(145deg, rgba(15, 23, 42, 0.65) 0%, rgba(30, 41, 59, 0.45) 100%)",
+  selectedBackground: "linear-gradient(145deg, rgba(15, 118, 110, 0.25) 0%, rgba(20, 184, 166, 0.15) 100%)",
+  controlBackground: "rgba(30, 41, 59, 0.65)",
+  border: "1px solid rgba(71, 85, 105, 0.3)",
+  controlBorder: "1px solid rgba(71, 85, 105, 0.4)",
+  tealBorder: "1px solid rgba(45, 212, 191, 0.35)",
+  pendingBorder: "1px dashed rgba(45, 212, 191, 0.45)",
+  errorBackground: "linear-gradient(145deg, rgba(159, 18, 57, 0.25) 0%, rgba(225, 29, 72, 0.15) 100%)",
+  errorBorder: "1px solid rgba(225, 29, 72, 0.3)",
+  controlShadow: "0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05)",
+  panelShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.02)",
+  statusShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.02)",
+  optionShadow: "0 4px 12px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.02)",
+  selectedOptionShadow: "0 8px 24px rgba(20, 184, 166, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05)",
+  textPrimary: "#f8fafc",
+  textSecondary: "#cbd5e1",
+  textMuted: "#94a3b8",
+  textSelectedLabel: "#5eead4"
 };
 
 function getOverlayPalette(theme: OverlayTheme | undefined): OverlayPalette {
+  if (theme === "dark") return darkPalette;
   return theme === "white" ? whitePalette : transparentPalette;
 }
 
@@ -125,7 +164,7 @@ function applyBackdropGlass(element: HTMLElement, blur = glassBlur): void {
 
 function paintDefaultIconButton(button: HTMLButtonElement, palette: OverlayPalette): void {
   button.style.background = palette.controlBackground;
-  button.style.color = "#334155";
+  button.style.color = palette.textSecondary;
   button.style.border = palette.controlBorder;
   button.style.boxShadow = palette.controlShadow;
   applyBackdropGlass(button, controlGlassBlur);
@@ -284,7 +323,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
   root.style.zIndex = "2147483647";
   root.style.fontFamily = "Manrope, ui-sans-serif, system-ui, sans-serif";
   root.style.opacity = "1";
-  root.style.color = "#0f172a";
+  root.style.color = palette.textPrimary;
   root.style.cursor = "default";
 
   const card = document.createElement("div");
@@ -348,7 +387,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
   originalLabelText.style.fontWeight = "800";
   originalLabelText.style.letterSpacing = "0.16em";
   originalLabelText.style.textTransform = "uppercase";
-  originalLabelText.style.color = "#64748b";
+  originalLabelText.style.color = palette.textMuted;
   originalLabel.appendChild(originalLabelText);
 
   const originalActions = document.createElement("div");
@@ -363,7 +402,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
   originalText.style.fontSize = "13px";
   originalText.style.fontWeight = "700";
   originalText.style.lineHeight = "1.55";
-  originalText.style.color = "#0f172a";
+  originalText.style.color = palette.textPrimary;
   originalText.style.wordBreak = "break-word";
   originalText.style.whiteSpace = "pre-wrap";
   originalBlock.appendChild(originalText);
@@ -436,7 +475,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
   statusMessage.style.lineHeight = "1.5";
   statusMessage.style.background = palette.mutedBackground;
   statusMessage.style.border = palette.border;
-  statusMessage.style.color = "#64748b";
+  statusMessage.style.color = palette.textMuted;
   statusMessage.style.boxShadow = palette.statusShadow;
   applyBackdropGlass(statusMessage);
   optionsContainer.appendChild(statusMessage);
@@ -537,7 +576,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
     button.style.background = isActive
       ? "linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)"
       : palette.controlBackground;
-    button.style.color = isActive ? "#ffffff" : "#334155";
+    button.style.color = isActive ? "#ffffff" : palette.textSecondary;
     button.style.border = isActive ? "1px solid #0f766e" : palette.controlBorder;
     button.style.boxShadow = isActive
       ? "0 10px 24px rgba(20, 184, 166, 0.24)"
@@ -639,7 +678,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
     pendingRow.style.gap = "10px";
     pendingRow.style.background = palette.panelBackground;
     pendingRow.style.border = palette.pendingBorder;
-    pendingRow.style.color = "#475569";
+    pendingRow.style.color = palette.textMuted;
     pendingRow.style.boxShadow = palette.statusShadow;
     applyBackdropGlass(pendingRow);
 
@@ -674,7 +713,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
     text.style.fontWeight = "700";
     text.style.lineHeight = "1.4";
     text.style.letterSpacing = "0";
-    text.style.color = "#475569";
+    text.style.color = palette.textMuted;
     textWrap.appendChild(text);
 
     pendingRow.appendChild(textWrap);
@@ -749,7 +788,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
           ? palette.selectedBackground
           : palette.panelBackground;
       optionButton.style.border = index === 0 ? palette.tealBorder : palette.border;
-      optionButton.style.color = index === 0 ? "#0f172a" : "#334155";
+      optionButton.style.color = index === 0 ? palette.textPrimary : palette.textSecondary;
       optionButton.style.boxShadow = index === 0 ? palette.selectedOptionShadow : palette.optionShadow;
       applyBackdropGlass(optionButton);
 
@@ -764,7 +803,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
         label.style.lineHeight = "1.2";
         label.style.letterSpacing = "0";
         label.style.textTransform = "uppercase";
-        label.style.color = index === 0 ? "#0f766e" : "#64748b";
+        label.style.color = index === 0 ? palette.textSelectedLabel : palette.textMuted;
         optionButton.appendChild(label);
       }
 
@@ -781,20 +820,20 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
           if (child instanceof HTMLButtonElement) {
             child.style.background = palette.panelBackground;
             child.style.border = palette.border;
-            child.style.color = "#334155";
+            child.style.color = palette.textSecondary;
             child.style.opacity = "1";
             child.style.fontWeight = "700";
             child.style.boxShadow = palette.optionShadow;
             child.querySelectorAll("[data-translation-option-label]").forEach((label) => {
               if (label instanceof HTMLElement) {
-                label.style.color = "#64748b";
+                label.style.color = palette.textMuted;
               }
             });
           }
         });
         optionButton.style.background = palette.selectedBackground;
         optionButton.style.border = palette.tealBorder;
-        optionButton.style.color = "#0f172a";
+        optionButton.style.color = palette.textPrimary;
         optionButton.style.opacity = "1";
         optionButton.style.fontWeight = "800";
         optionButton.style.boxShadow = palette.selectedOptionShadow;
@@ -830,7 +869,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
         ? palette.errorBackground
         : palette.mutedBackground;
     statusMessage.style.border = tone === "error" ? palette.errorBorder : palette.border;
-    statusMessage.style.color = tone === "error" ? "#b91c1c" : "#64748b";
+    statusMessage.style.color = tone === "error" ? "#b91c1c" : palette.textMuted;
     optionsContainer.appendChild(statusMessage);
     selectedText = "";
     setActionAvailability(false);
