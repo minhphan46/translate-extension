@@ -5,7 +5,7 @@ import Copy from "lucide/dist/esm/icons/copy.mjs";
 import Pause from "lucide/dist/esm/icons/pause.mjs";
 import Settings from "lucide/dist/esm/icons/settings.mjs";
 import Volume2 from "lucide/dist/esm/icons/volume-2.mjs";
-import type { TranslationDirection, TranslationOption } from "../shared/types";
+import type { OverlayTheme, TranslationDirection, TranslationOption } from "../shared/types";
 
 type RenderableTranslationOption = string | TranslationOption;
 type IconName = "volume" | "pause" | "copy" | "copy-all" | "settings" | "check";
@@ -13,6 +13,7 @@ type IconName = "volume" | "pause" | "copy" | "copy-all" | "settings" | "check";
 interface OverlayParams {
   originalText: string;
   direction: TranslationDirection;
+  theme?: OverlayTheme;
   anchorRect: DOMRect;
   onCopy: (value: string) => Promise<void> | void;
   onOpenSettings: () => void;
@@ -36,6 +37,98 @@ interface OverlayHandle {
 interface PositionBox {
   left: number;
   top: number;
+}
+
+const glassBlur = "blur(24px) saturate(170%)";
+const controlGlassBlur = "blur(14px) saturate(150%)";
+
+interface OverlayPalette {
+  cardBackground: string;
+  cardBorder: string;
+  cardShadow: string;
+  bodyBackground: string;
+  panelBackground: string;
+  mutedBackground: string;
+  selectedBackground: string;
+  controlBackground: string;
+  border: string;
+  controlBorder: string;
+  tealBorder: string;
+  pendingBorder: string;
+  errorBackground: string;
+  errorBorder: string;
+  controlShadow: string;
+  panelShadow: string;
+  statusShadow: string;
+  optionShadow: string;
+  selectedOptionShadow: string;
+}
+
+const transparentPalette: OverlayPalette = {
+  cardBackground:
+    "linear-gradient(145deg, rgba(255, 255, 255, 0.18) 0%, rgba(241, 245, 249, 0.06) 100%)",
+  cardBorder: "0",
+  cardShadow: "0 28px 90px rgba(15, 23, 42, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.12)",
+  bodyBackground: "rgba(255, 255, 255, 0.02)",
+  panelBackground:
+    "linear-gradient(145deg, rgba(255, 255, 255, 0.16) 0%, rgba(248, 250, 252, 0.07) 100%)",
+  mutedBackground:
+    "linear-gradient(145deg, rgba(248, 250, 252, 0.14) 0%, rgba(226, 232, 240, 0.06) 100%)",
+  selectedBackground:
+    "linear-gradient(145deg, rgba(236, 254, 255, 0.26) 0%, rgba(240, 253, 250, 0.1) 100%)",
+  controlBackground: "rgba(255, 255, 255, 0.16)",
+  border: "1px solid rgba(148, 163, 184, 0.16)",
+  controlBorder: "1px solid rgba(148, 163, 184, 0.18)",
+  tealBorder: "1px solid rgba(45, 212, 191, 0.42)",
+  pendingBorder: "1px dashed rgba(94, 234, 212, 0.58)",
+  errorBackground:
+    "linear-gradient(145deg, rgba(255, 241, 242, 0.26) 0%, rgba(255, 228, 230, 0.1) 100%)",
+  errorBorder: "1px solid rgba(248, 113, 113, 0.26)",
+  controlShadow: "0 10px 24px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.18)",
+  panelShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.14)",
+  statusShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.12)",
+  optionShadow: "0 8px 20px rgba(15, 23, 42, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.12)",
+  selectedOptionShadow:
+    "0 12px 28px rgba(20, 184, 166, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.16)"
+};
+
+const whitePalette: OverlayPalette = {
+  cardBackground: "#ffffff",
+  cardBorder: "1px solid rgba(226, 232, 240, 0.95)",
+  cardShadow: "0 28px 90px rgba(15, 23, 42, 0.22)",
+  bodyBackground: "#ffffff",
+  panelBackground: "#ffffff",
+  mutedBackground: "linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)",
+  selectedBackground: "linear-gradient(135deg, #ecfeff 0%, #f0fdfa 100%)",
+  controlBackground: "#ffffff",
+  border: "1px solid #e2e8f0",
+  controlBorder: "1px solid #dbe4f0",
+  tealBorder: "1px solid #5eead4",
+  pendingBorder: "1px dashed #99f6e4",
+  errorBackground: "linear-gradient(180deg, #fff1f2 0%, #ffe4e6 100%)",
+  errorBorder: "1px solid #fecaca",
+  controlShadow: "0 8px 20px rgba(15, 23, 42, 0.06)",
+  panelShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.8)",
+  statusShadow: "",
+  optionShadow: "0 8px 20px rgba(15, 23, 42, 0.05)",
+  selectedOptionShadow: "0 12px 28px rgba(20, 184, 166, 0.16)"
+};
+
+function getOverlayPalette(theme: OverlayTheme | undefined): OverlayPalette {
+  return theme === "white" ? whitePalette : transparentPalette;
+}
+
+function applyBackdropGlass(element: HTMLElement, blur = glassBlur): void {
+  element.style.setProperty("backdrop-filter", blur);
+  element.style.setProperty("-webkit-backdrop-filter", blur);
+}
+
+function paintDefaultIconButton(button: HTMLButtonElement, palette: OverlayPalette): void {
+  button.style.background = palette.controlBackground;
+  button.style.color = "#334155";
+  button.style.border = palette.controlBorder;
+  button.style.boxShadow = palette.controlShadow;
+  applyBackdropGlass(button, controlGlassBlur);
 }
 
 function resolveIcon(icon: IconName) {
@@ -62,7 +155,7 @@ function resolveIcon(icon: IconName) {
   return Settings;
 }
 
-function iconButton(label: string, icon: IconName): HTMLButtonElement {
+function iconButton(label: string, icon: IconName, palette: OverlayPalette): HTMLButtonElement {
   const button = document.createElement("button");
   button.type = "button";
   button.setAttribute("aria-label", label);
@@ -82,10 +175,7 @@ function iconButton(label: string, icon: IconName): HTMLButtonElement {
   button.style.transition = "transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease";
   button.style.opacity = "1";
   button.style.letterSpacing = "0.01em";
-  button.style.background = "#ffffff";
-  button.style.color = "#334155";
-  button.style.border = "1px solid #dbe4f0";
-  button.style.boxShadow = "0 8px 20px rgba(15, 23, 42, 0.06)";
+  paintDefaultIconButton(button, palette);
   const svg = createLucideElement(resolveIcon(icon), {
     width: 12,
     height: 12,
@@ -186,6 +276,7 @@ function positionOverlay(
 }
 
 export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
+  const palette = getOverlayPalette(params.theme);
   const root = document.createElement("div");
   root.className = "translate-extension-root";
   root.style.all = "initial";
@@ -202,10 +293,11 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
   card.style.flexDirection = "column";
   card.style.overflow = "hidden";
   card.style.borderRadius = "24px";
-  card.style.background = "#ffffff";
+  card.style.background = palette.cardBackground;
   card.style.opacity = "1";
-  card.style.border = "1px solid rgba(226, 232, 240, 0.95)";
-  card.style.boxShadow = "0 28px 90px rgba(15, 23, 42, 0.22)";
+  card.style.border = palette.cardBorder;
+  card.style.boxShadow = palette.cardShadow;
+  applyBackdropGlass(card, "blur(30px) saturate(180%)");
   root.appendChild(card);
 
   const animationStyles = document.createElement("style");
@@ -224,21 +316,22 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
   positionOverlay(root, card, params.anchorRect);
 
   const body = document.createElement("div");
-  body.style.background = "#ffffff";
+  body.style.background = palette.bodyBackground;
   body.style.padding = "12px";
   body.style.display = "grid";
   body.style.gap = "10px";
-  body.style.background = "#ffffff";
   body.style.overflowY = "auto";
   body.style.overscrollBehavior = "contain";
   card.appendChild(body);
 
   const originalBlock = document.createElement("div");
   originalBlock.style.borderRadius = "18px";
-  originalBlock.style.background = "linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)";
+  originalBlock.style.background = palette.mutedBackground;
   originalBlock.style.padding = "12px";
   originalBlock.style.opacity = "1";
-  originalBlock.style.border = "1px solid #e2e8f0";
+  originalBlock.style.border = palette.border;
+  originalBlock.style.boxShadow = palette.panelShadow;
+  applyBackdropGlass(originalBlock);
   body.appendChild(originalBlock);
 
   const originalLabel = document.createElement("div");
@@ -277,7 +370,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
 
   let speakingTarget: "original" | "translation" | null = null;
 
-  const speakOriginal = iconButton("Speak original", "volume");
+  const speakOriginal = iconButton("Speak original", "volume", palette);
   speakOriginal.addEventListener("click", () => {
     params.onSpeakToggle({
       id: "original",
@@ -286,7 +379,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
     });
   });
 
-  const copyOriginal = iconButton("Copy original", "copy");
+  const copyOriginal = iconButton("Copy original", "copy", palette);
   copyOriginal.addEventListener("click", async () => {
     await params.onCopy(params.originalText);
     showCopyFeedback(copyOriginal, "Copy original", "copy");
@@ -296,11 +389,12 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
 
   const translatedBlock = document.createElement("div");
   translatedBlock.style.borderRadius = "18px";
-  translatedBlock.style.background = "#ffffff";
-  translatedBlock.style.border = "1px solid #e2e8f0";
+  translatedBlock.style.background = palette.panelBackground;
+  translatedBlock.style.border = palette.border;
   translatedBlock.style.opacity = "1";
   translatedBlock.style.padding = "12px";
-  translatedBlock.style.boxShadow = "inset 0 1px 0 rgba(255, 255, 255, 0.8)";
+  translatedBlock.style.boxShadow = palette.panelShadow;
+  applyBackdropGlass(translatedBlock);
   body.appendChild(translatedBlock);
 
   const translatedLabel = document.createElement("div");
@@ -340,12 +434,14 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
   statusMessage.style.fontSize = "12px";
   statusMessage.style.fontWeight = "700";
   statusMessage.style.lineHeight = "1.5";
-  statusMessage.style.background = "linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)";
-  statusMessage.style.border = "1px solid #e2e8f0";
+  statusMessage.style.background = palette.mutedBackground;
+  statusMessage.style.border = palette.border;
   statusMessage.style.color = "#64748b";
+  statusMessage.style.boxShadow = palette.statusShadow;
+  applyBackdropGlass(statusMessage);
   optionsContainer.appendChild(statusMessage);
 
-  const speakTranslated = iconButton("Speak translation", "volume");
+  const speakTranslated = iconButton("Speak translation", "volume", palette);
   speakTranslated.addEventListener("click", () => {
     if (!selectedText) {
       return;
@@ -358,7 +454,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
     });
   });
 
-  const copyButton = iconButton("Copy translation", "copy");
+  const copyButton = iconButton("Copy translation", "copy", palette);
   copyButton.addEventListener("click", async () => {
     if (!selectedText) {
       return;
@@ -369,7 +465,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
   });
 
   const copyAllButton =
-    params.direction === "vi-to-en" ? iconButton("Copy all translations", "copy-all") : null;
+    params.direction === "vi-to-en" ? iconButton("Copy all translations", "copy-all", palette) : null;
   copyAllButton?.addEventListener("click", async () => {
     if (!translationTexts.length) {
       return;
@@ -379,7 +475,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
     showCopyFeedback(copyAllButton, "Copy all translations", "copy-all");
   });
 
-  const settingsButton = iconButton("Settings", "settings");
+  const settingsButton = iconButton("Settings", "settings", palette);
   settingsButton.addEventListener("click", params.onOpenSettings);
 
   translatedActions.append(
@@ -440,12 +536,13 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
   ): void {
     button.style.background = isActive
       ? "linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)"
-      : "#ffffff";
+      : palette.controlBackground;
     button.style.color = isActive ? "#ffffff" : "#334155";
-    button.style.border = isActive ? "1px solid #0f766e" : "1px solid #dbe4f0";
+    button.style.border = isActive ? "1px solid #0f766e" : palette.controlBorder;
     button.style.boxShadow = isActive
       ? "0 10px 24px rgba(20, 184, 166, 0.24)"
-      : "0 8px 20px rgba(15, 23, 42, 0.06)";
+      : palette.controlShadow;
+    applyBackdropGlass(button, controlGlassBlur);
     setIcon(button, icon);
   }
 
@@ -480,10 +577,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
     setIcon(button, icon);
     button.setAttribute("aria-label", label);
     button.title = label;
-    button.style.background = "#ffffff";
-    button.style.color = "#334155";
-    button.style.border = "1px solid #dbe4f0";
-    button.style.boxShadow = "0 8px 20px rgba(15, 23, 42, 0.06)";
+    paintDefaultIconButton(button, palette);
     button.style.transform = "";
   }
 
@@ -543,9 +637,11 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
     pendingRow.style.display = "flex";
     pendingRow.style.alignItems = "center";
     pendingRow.style.gap = "10px";
-    pendingRow.style.background = "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)";
-    pendingRow.style.border = "1px dashed #99f6e4";
+    pendingRow.style.background = palette.panelBackground;
+    pendingRow.style.border = palette.pendingBorder;
     pendingRow.style.color = "#475569";
+    pendingRow.style.boxShadow = palette.statusShadow;
+    applyBackdropGlass(pendingRow);
 
     const spinner = document.createElement("span");
     spinner.style.width = "14px";
@@ -590,9 +686,11 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
     errorRow.setAttribute("aria-label", message);
     errorRow.style.borderRadius = "15px";
     errorRow.style.padding = "8px 10px";
-    errorRow.style.background = "linear-gradient(180deg, #fff1f2 0%, #ffe4e6 100%)";
-    errorRow.style.border = "1px solid #fecaca";
+    errorRow.style.background = palette.errorBackground;
+    errorRow.style.border = palette.errorBorder;
     errorRow.style.color = "#b91c1c";
+    errorRow.style.boxShadow = palette.statusShadow;
+    applyBackdropGlass(errorRow);
 
     const label = document.createElement("span");
     label.textContent = "AI Error";
@@ -648,12 +746,12 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
       optionButton.style.opacity = "1";
       optionButton.style.background =
         index === 0
-          ? "linear-gradient(135deg, #ecfeff 0%, #f0fdfa 100%)"
-          : "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)";
-      optionButton.style.border = index === 0 ? "1px solid #5eead4" : "1px solid #e2e8f0";
+          ? palette.selectedBackground
+          : palette.panelBackground;
+      optionButton.style.border = index === 0 ? palette.tealBorder : palette.border;
       optionButton.style.color = index === 0 ? "#0f172a" : "#334155";
-      optionButton.style.boxShadow =
-        index === 0 ? "0 12px 28px rgba(20, 184, 166, 0.16)" : "0 8px 20px rgba(15, 23, 42, 0.05)";
+      optionButton.style.boxShadow = index === 0 ? palette.selectedOptionShadow : palette.optionShadow;
+      applyBackdropGlass(optionButton);
 
       if (optionLabel) {
         const label = document.createElement("span");
@@ -681,12 +779,12 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
         selectedText = optionText;
         Array.from(optionsContainer.children).forEach((child) => {
           if (child instanceof HTMLButtonElement) {
-            child.style.background = "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)";
-            child.style.border = "1px solid #e2e8f0";
+            child.style.background = palette.panelBackground;
+            child.style.border = palette.border;
             child.style.color = "#334155";
             child.style.opacity = "1";
             child.style.fontWeight = "700";
-            child.style.boxShadow = "0 8px 20px rgba(15, 23, 42, 0.05)";
+            child.style.boxShadow = palette.optionShadow;
             child.querySelectorAll("[data-translation-option-label]").forEach((label) => {
               if (label instanceof HTMLElement) {
                 label.style.color = "#64748b";
@@ -694,12 +792,12 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
             });
           }
         });
-        optionButton.style.background = "linear-gradient(135deg, #ecfeff 0%, #f0fdfa 100%)";
-        optionButton.style.border = "1px solid #5eead4";
+        optionButton.style.background = palette.selectedBackground;
+        optionButton.style.border = palette.tealBorder;
         optionButton.style.color = "#0f172a";
         optionButton.style.opacity = "1";
         optionButton.style.fontWeight = "800";
-        optionButton.style.boxShadow = "0 12px 28px rgba(20, 184, 166, 0.16)";
+        optionButton.style.boxShadow = palette.selectedOptionShadow;
         optionButton.querySelectorAll("[data-translation-option-label]").forEach((label) => {
           if (label instanceof HTMLElement) {
             label.style.color = "#0f766e";
@@ -729,9 +827,9 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
     statusMessage.textContent = message;
     statusMessage.style.background =
       tone === "error"
-        ? "linear-gradient(180deg, #fff1f2 0%, #ffe4e6 100%)"
-        : "linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)";
-    statusMessage.style.border = tone === "error" ? "1px solid #fecaca" : "1px solid #e2e8f0";
+        ? palette.errorBackground
+        : palette.mutedBackground;
+    statusMessage.style.border = tone === "error" ? palette.errorBorder : palette.border;
     statusMessage.style.color = tone === "error" ? "#b91c1c" : "#64748b";
     optionsContainer.appendChild(statusMessage);
     selectedText = "";

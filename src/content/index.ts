@@ -1,5 +1,6 @@
 import type { RuntimeMessage, RuntimeResponse } from "../shared/messages";
 import type { TranslationOption, TranslationResult } from "../shared/types";
+import { extensionStorage } from "../shared/storage";
 import { createTranslationOverlay } from "./overlay";
 import "./content.css";
 
@@ -140,6 +141,16 @@ function createRequestId(): string {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
 }
 
+async function getOverlayTheme(): Promise<"transparent" | "white"> {
+  try {
+    return (await extensionStorage.getSettings()).overlayTheme;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to load settings.";
+    debugLog("Using default overlay theme", { message });
+    return "transparent";
+  }
+}
+
 function getRenderableOptions(result: TranslationResult): TranslationOption[] {
   if (result.translationOptions?.length) {
     return result.translationOptions;
@@ -187,13 +198,15 @@ async function requestTranslation(text: string, requestId: string): Promise<Tran
   return response.data;
 }
 
-function mountLoadingOverlay(
+async function mountLoadingOverlay(
   originalText: string,
   anchorRect: DOMRect,
   direction: TranslationResult["direction"]
-): ReturnType<typeof createTranslationOverlay> {
+): Promise<ReturnType<typeof createTranslationOverlay>> {
   destroyOverlay();
+  const theme = await getOverlayTheme();
   debugLog("Mounting loading overlay", {
+    theme,
     anchorRect: {
       top: anchorRect.top,
       left: anchorRect.left,
@@ -207,6 +220,7 @@ function mountLoadingOverlay(
   activeOverlay = createTranslationOverlay({
     originalText,
     direction,
+    theme,
     anchorRect,
     onCopy: async (value) => navigator.clipboard.writeText(value),
     onOpenSettings: () => {
@@ -257,7 +271,7 @@ async function handleShortcut(): Promise<void> {
 
   try {
     const requestId = createRequestId();
-    const overlay = mountLoadingOverlay(
+    const overlay = await mountLoadingOverlay(
       selectedText,
       anchorRect,
       detectSelectionDirection(selectedText)

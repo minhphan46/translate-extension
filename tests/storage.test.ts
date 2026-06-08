@@ -44,6 +44,7 @@ describe("extensionStorage", () => {
     expect(settings.promptTemplate).toBe("");
     expect(settings.keys).toEqual([]);
     expect(settings.enableAiVietnameseToEnglishOptions).toBe(false);
+    expect(settings.overlayTheme).toBe("transparent");
   });
 
   it("adds api key to collection", async () => {
@@ -57,7 +58,8 @@ describe("extensionStorage", () => {
       geminiApiKey: "gemini-key",
       geminiModel: DEFAULT_GEMINI_MODEL,
       promptTemplate: "",
-      enableAiVietnameseToEnglishOptions: true
+      enableAiVietnameseToEnglishOptions: true,
+      overlayTheme: "white"
     });
 
     const settings = await extensionStorage.getSettings();
@@ -68,5 +70,6 @@ describe("extensionStorage", () => {
     expect(settings.geminiKeys[0].label).toBe("Gemini Main");
     expect(settings.activeGeminiKeyId).toBe("g1");
     expect(settings.geminiApiKey).toBe("gemini-key");
+    expect(settings.overlayTheme).toBe("white");
   });
 });

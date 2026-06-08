@@ -2,6 +2,37 @@ import { fireEvent, getByLabelText, getByText, queryByLabelText, queryByText } f
 import { createTranslationOverlay } from "../src/content/overlay";
 
 describe("createTranslationOverlay", () => {
+  it("uses transparent glass theme by default", () => {
+    const overlay = createTranslationOverlay({
+      originalText: "xin chao",
+      direction: "vi-to-en",
+      anchorRect: new DOMRect(100, 180, 120, 24),
+      onCopy: vi.fn(),
+      onOpenSettings: vi.fn(),
+      onSpeakToggle: vi.fn()
+    });
+
+    const card = overlay.element.firstElementChild as HTMLElement;
+    expect(card.style.borderWidth).toBe("0px");
+    expect(card.style.background).toContain("rgba(255, 255, 255, 0.18)");
+  });
+
+  it("uses white panel theme when requested", () => {
+    const overlay = createTranslationOverlay({
+      originalText: "xin chao",
+      direction: "vi-to-en",
+      theme: "white",
+      anchorRect: new DOMRect(100, 180, 120, 24),
+      onCopy: vi.fn(),
+      onOpenSettings: vi.fn(),
+      onSpeakToggle: vi.fn()
+    });
+
+    const card = overlay.element.firstElementChild as HTMLElement;
+    expect(card.style.border).toBe("1px solid rgba(226, 232, 240, 0.95)");
+    expect(card.style.background).toBe("rgb(255, 255, 255)");
+  });
+
   it("renders original text and copies selected option", async () => {
     const onCopy = vi.fn(async () => {});
     const onOpenSettings = vi.fn();

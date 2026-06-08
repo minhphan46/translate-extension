@@ -1,0 +1,29 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="18" y1="14" x2="112" y2="118" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#14B8A6"/>
+      <stop offset="0.52" stop-color="#0EA5E9"/>
+      <stop offset="1" stop-color="#1E293B"/>
+    </linearGradient>
+    <linearGradient id="card" x1="34" y1="30" x2="96" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#E0F2FE"/>
+    </linearGradient>
+    <filter id="shadow" x="10" y="12" width="108" height="108" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#0F172A" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="28" fill="url(#bg)"/>
+  <path d="M24 35C24 25.611 31.611 18 41 18H87C96.389 18 104 25.611 104 35V76C104 85.389 96.389 93 87 93H74.5L64 106L53.5 93H41C31.611 93 24 85.389 24 76V35Z" fill="#0F172A" fill-opacity="0.18"/>
+  <g filter="url(#shadow)">
+    <path d="M28 33C28 24.716 34.716 18 43 18H85C93.284 18 100 24.716 100 33V73C100 81.284 93.284 88 85 88H73.25L64 100L54.75 88H43C34.716 88 28 81.284 28 73V33Z" fill="url(#card)"/>
+  </g>
+  <rect x="39" y="37" width="22" height="6" rx="3" fill="#0F766E" opacity="0.22"/>
+  <rect x="67" y="84" width="22" height="6" rx="3" fill="#0284C7" opacity="0.22" transform="rotate(180 67 84)"/>
+  <path d="M45.711 68H39.587L51.055 37.455H57.831L69.314 68H63.19L60.575 60.684H48.326L45.711 68ZM50.005 55.982H58.896L54.542 43.689H54.304L50.005 55.982Z" fill="#0F172A"/>
+  <path d="M82.801 46.941H76.915V40.742H72.292V46.941H66.406V50.877H82.801V46.941ZM71.208 81.455C68.117 81.455 65.637 80.431 63.767 78.382C61.897 76.334 60.962 73.55 60.962 70.031C60.962 66.552 61.912 63.778 63.812 61.709C65.712 59.64 68.177 58.606 71.208 58.606C72.797 58.606 74.192 58.934 75.393 59.59C76.594 60.246 77.51 61.097 78.142 62.143H78.365V51.5H83.868V81H78.544V77.704H78.246C77.589 78.75 76.639 79.656 75.393 80.421C74.148 81.111 72.753 81.455 71.208 81.455ZM72.443 76.904C74.178 76.904 75.602 76.274 76.714 75.013C77.826 73.752 78.382 72.107 78.382 70.077C78.382 68.048 77.826 66.403 76.714 65.142C75.602 63.861 74.178 63.221 72.443 63.221C70.692 63.221 69.268 63.851 68.171 65.112C67.074 66.373 66.525 68.028 66.525 70.077C66.525 72.126 67.074 73.781 68.171 75.043C69.268 76.284 70.692 76.904 72.443 76.904Z" fill="#0F766E"/>
+  <path d="M43 78H87" stroke="#0EA5E9" stroke-width="5" stroke-linecap="round"/>
+  <path d="M78 70L87 78L78 86" stroke="#0EA5E9" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M85 31H43" stroke="#14B8A6" stroke-width="5" stroke-linecap="round"/>
+  <path d="M52 23L43 31L52 39" stroke="#14B8A6" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

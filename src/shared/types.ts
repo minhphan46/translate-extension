@@ -1,6 +1,7 @@
 export type TranslationDirection = "vi-to-en" | "foreign-to-vi" | "unknown";
 export type TranslationAiProvider = "openai" | "gemini";
 export type TranslationOptionSource = "google" | "gpt" | "gemini";
+export type OverlayTheme = "transparent" | "white";
 
 export interface ApiKeyRecord {
   id: string;
@@ -20,6 +21,7 @@ export interface ExtensionSettings {
   geminiModel: string;
   promptTemplate: string;
   enableAiVietnameseToEnglishOptions: boolean;
+  overlayTheme: OverlayTheme;
 }
 
 export interface TranslationResult {

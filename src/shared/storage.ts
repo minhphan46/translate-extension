@@ -22,7 +22,8 @@ const DEFAULT_SETTINGS: ExtensionSettings = {
   geminiApiKey: "",
   geminiModel: DEFAULT_GEMINI_MODEL,
   promptTemplate: "",
-  enableAiVietnameseToEnglishOptions: false
+  enableAiVietnameseToEnglishOptions: false,
+  overlayTheme: "transparent"
 };
 
 function normalizeSettings(settings: ExtensionSettings): ExtensionSettings {

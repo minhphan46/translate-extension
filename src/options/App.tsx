@@ -8,7 +8,7 @@ import {
   OPENAI_MODELS,
   extensionStorage
 } from "../shared/storage";
-import type { ApiKeyRecord, ExtensionSettings, TranslationAiProvider } from "../shared/types";
+import type { ApiKeyRecord, ExtensionSettings, OverlayTheme, TranslationAiProvider } from "../shared/types";
 
 type ActiveTab = "dashboard" | "settings";
 
@@ -28,7 +28,8 @@ function createEmptyState(): ExtensionSettings {
     geminiApiKey: "",
     geminiModel: DEFAULT_GEMINI_MODEL,
     promptTemplate: "",
-    enableAiVietnameseToEnglishOptions: false
+    enableAiVietnameseToEnglishOptions: false,
+    overlayTheme: "transparent"
   };
 }
 
@@ -52,6 +53,7 @@ export function App() {
   const [geminiModel, setGeminiModel] = useState(DEFAULT_GEMINI_MODEL);
   const [promptTemplate, setPromptTemplate] = useState("");
   const [enableAiVietnameseToEnglishOptions, setEnableAiVietnameseToEnglishOptions] = useState(false);
+  const [overlayTheme, setOverlayTheme] = useState<OverlayTheme>("transparent");
   const [status, setStatus] = useState("Ready");
 
   useEffect(() => {
@@ -64,6 +66,7 @@ export function App() {
       setGeminiModel(nextSettings.geminiModel);
       setPromptTemplate(nextSettings.promptTemplate);
       setEnableAiVietnameseToEnglishOptions(nextSettings.enableAiVietnameseToEnglishOptions);
+      setOverlayTheme(nextSettings.overlayTheme);
     })();
   }, []);
 
@@ -115,7 +118,8 @@ export function App() {
         geminiModel: geminiModel.trim() || DEFAULT_GEMINI_MODEL,
         model,
         promptTemplate,
-        enableAiVietnameseToEnglishOptions
+        enableAiVietnameseToEnglishOptions,
+        overlayTheme
       });
       setGeminiApiKey("");
       setGeminiLabel("Gemini Key");
@@ -144,7 +148,8 @@ export function App() {
       geminiApiKey: activeGeminiKey?.apiKey ?? settings.geminiApiKey,
       geminiModel: geminiModel.trim() || DEFAULT_GEMINI_MODEL,
       promptTemplate,
-      enableAiVietnameseToEnglishOptions
+      enableAiVietnameseToEnglishOptions,
+      overlayTheme
     };
 
     await saveSettings(nextSettings);
@@ -167,7 +172,8 @@ export function App() {
       geminiApiKey: nextGeminiKey?.apiKey ?? settings.geminiApiKey,
       geminiModel: geminiModel.trim() || DEFAULT_GEMINI_MODEL,
       promptTemplate,
-      enableAiVietnameseToEnglishOptions
+      enableAiVietnameseToEnglishOptions,
+      overlayTheme
     });
   }
 
@@ -192,7 +198,8 @@ export function App() {
         aiProvider,
         geminiModel: geminiModel.trim() || DEFAULT_GEMINI_MODEL,
         promptTemplate,
-        enableAiVietnameseToEnglishOptions
+        enableAiVietnameseToEnglishOptions,
+        overlayTheme
       });
       setStatus("Deleted Gemini key");
       return;
@@ -211,7 +218,8 @@ export function App() {
       geminiApiKey: activeGeminiKey?.apiKey ?? settings.geminiApiKey,
       geminiModel: geminiModel.trim() || DEFAULT_GEMINI_MODEL,
       promptTemplate,
-      enableAiVietnameseToEnglishOptions
+      enableAiVietnameseToEnglishOptions,
+      overlayTheme
     });
     setStatus("Deleted OpenAI key");
   }
@@ -225,7 +233,22 @@ export function App() {
       geminiModel: geminiModel.trim() || DEFAULT_GEMINI_MODEL,
       model,
       promptTemplate,
-      enableAiVietnameseToEnglishOptions
+      enableAiVietnameseToEnglishOptions,
+      overlayTheme
+    });
+  }
+
+  async function handleSelectOverlayTheme(nextTheme: OverlayTheme): Promise<void> {
+    setOverlayTheme(nextTheme);
+    await saveSettings({
+      ...settings,
+      model,
+      aiProvider,
+      geminiApiKey: activeGeminiKey?.apiKey ?? settings.geminiApiKey,
+      geminiModel: geminiModel.trim() || DEFAULT_GEMINI_MODEL,
+      promptTemplate,
+      enableAiVietnameseToEnglishOptions,
+      overlayTheme: nextTheme
     });
   }
 
@@ -237,7 +260,8 @@ export function App() {
       geminiApiKey: activeGeminiKey?.apiKey ?? settings.geminiApiKey,
       geminiModel: geminiModel.trim() || DEFAULT_GEMINI_MODEL,
       promptTemplate,
-      enableAiVietnameseToEnglishOptions
+      enableAiVietnameseToEnglishOptions,
+      overlayTheme
     });
   }
 
@@ -520,6 +544,44 @@ export function App() {
                       </div>
                     </section>
                   </div>
+
+                  <section className="mt-6 rounded-[24px] border border-slate-200 bg-white p-6">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div>
+                        <h3 className="text-lg font-semibold text-slate-900">Popup theme</h3>
+                      </div>
+                      <div className="rounded-full bg-teal-50 px-4 py-2 text-sm font-semibold text-teal-700">
+                        {overlayTheme === "transparent" ? "Transparent" : "White"}
+                      </div>
+                    </div>
+
+                    <div className="mt-5 grid gap-3 lg:grid-cols-2">
+                      <label className="flex items-start gap-3 rounded-3xl border border-slate-200 px-4 py-4 text-sm text-slate-700">
+                        <input
+                          type="radio"
+                          name="overlay-theme"
+                          checked={overlayTheme === "transparent"}
+                          onChange={() => void handleSelectOverlayTheme("transparent")}
+                          className="mt-1 h-4 w-4 accent-teal-600"
+                        />
+                        <span>
+                          <span className="block font-semibold text-slate-900">Transparent glass</span>
+                        </span>
+                      </label>
+                      <label className="flex items-start gap-3 rounded-3xl border border-slate-200 px-4 py-4 text-sm text-slate-700">
+                        <input
+                          type="radio"
+                          name="overlay-theme"
+                          checked={overlayTheme === "white"}
+                          onChange={() => void handleSelectOverlayTheme("white")}
+                          className="mt-1 h-4 w-4 accent-teal-600"
+                        />
+                        <span>
+                          <span className="block font-semibold text-slate-900">White panel</span>
+                        </span>
+                      </label>
+                    </div>
+                  </section>
 
                   <div className="mt-6 rounded-[24px] border border-teal-100 bg-teal-50 px-5 py-4 text-sm text-teal-900">
                     Status: {status}
