@@ -148,14 +148,23 @@ function getRenderableOptions(result: TranslationResult): TranslationOption[] {
   return (result.translatedOptions ?? [result.translatedText]).map((text) => ({ text }));
 }
 
-function hasGptOption(options: TranslationOption[]): boolean {
-  return options.some((option) => option.source === "gpt");
+function hasAiOption(options: TranslationOption[]): boolean {
+  return options.some((option) => option.source === "gpt" || option.source === "gemini");
 }
 
-function renderTranslationResult(result: TranslationResult, showGptLoading = false): void {
+function getAiLoadingLabel(result: TranslationResult): string {
+  if (result.pendingAiProvider === "gemini") {
+    return "Gemini is translating...";
+  }
+
+  return "GPT is translating...";
+}
+
+function renderTranslationResult(result: TranslationResult, showAiLoading = false): void {
   activeOverlay?.setTranslations(
     getRenderableOptions(result),
-    showGptLoading ? "GPT is translating..." : undefined
+    showAiLoading ? getAiLoadingLabel(result) : undefined,
+    result.aiError
   );
 }
 
@@ -285,7 +294,9 @@ chrome.runtime.onMessage?.addListener?.((message: RuntimeMessage) => {
   const options = getRenderableOptions(message.payload.result);
   renderTranslationResult(
     message.payload.result,
-    message.payload.result.direction === "vi-to-en" && !hasGptOption(options)
+    message.payload.result.direction === "vi-to-en" &&
+      Boolean(message.payload.result.pendingAiProvider) &&
+      !hasAiOption(options)
   );
 });
 

@@ -1,5 +1,6 @@
 export type TranslationDirection = "vi-to-en" | "foreign-to-vi" | "unknown";
-export type TranslationOptionSource = "google" | "gpt";
+export type TranslationAiProvider = "openai" | "gemini";
+export type TranslationOptionSource = "google" | "gpt" | "gemini";
 
 export interface ApiKeyRecord {
   id: string;
@@ -12,6 +13,11 @@ export interface ExtensionSettings {
   keys: ApiKeyRecord[];
   activeKeyId: string;
   model: string;
+  aiProvider: TranslationAiProvider;
+  geminiKeys: ApiKeyRecord[];
+  activeGeminiKeyId: string;
+  geminiApiKey: string;
+  geminiModel: string;
   promptTemplate: string;
   enableAiVietnameseToEnglishOptions: boolean;
 }
@@ -21,6 +27,8 @@ export interface TranslationResult {
   translatedText: string;
   translatedOptions?: string[];
   translationOptions?: TranslationOption[];
+  pendingAiProvider?: TranslationAiProvider;
+  aiError?: string;
   direction: TranslationDirection;
 }
 

@@ -23,7 +23,11 @@ interface OverlayHandle {
   element: HTMLDivElement;
   getSelectedText: () => string;
   setLoading: (label?: string) => void;
-  setTranslations: (options: RenderableTranslationOption[], pendingLabel?: string) => void;
+  setTranslations: (
+    options: RenderableTranslationOption[],
+    pendingLabel?: string,
+    errorLabel?: string
+  ) => void;
   setError: (message: string) => void;
   setSpeaking: (id: "original" | "translation" | null) => void;
   destroy: () => void;
@@ -517,10 +521,20 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
       return "";
     }
 
-    return option.label ?? (option.source === "google" ? "Google Translate" : option.source === "gpt" ? "GPT" : "");
+    return (
+      option.label ??
+      (option.source === "google"
+        ? "Google Translate"
+        : option.source === "gpt"
+          ? "GPT"
+          : option.source === "gemini"
+            ? "Gemini"
+            : "")
+    );
   }
 
   function createPendingRow(label: string): HTMLDivElement {
+    const sourceLabel = label.toLowerCase().includes("gemini") ? "Gemini" : "GPT";
     const pendingRow = document.createElement("div");
     pendingRow.setAttribute("aria-label", label);
     pendingRow.style.borderRadius = "15px";
@@ -548,7 +562,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
     textWrap.style.minWidth = "0";
 
     const source = document.createElement("span");
-    source.textContent = "GPT";
+    source.textContent = sourceLabel;
     source.style.fontSize = "10px";
     source.style.fontWeight = "800";
     source.style.lineHeight = "1.2";
@@ -570,7 +584,45 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
     return pendingRow;
   }
 
-  function renderOptions(options: RenderableTranslationOption[], pendingLabel?: string): void {
+  function createInlineErrorRow(message: string): HTMLDivElement {
+    const errorRow = document.createElement("div");
+    errorRow.setAttribute("aria-label", message);
+    errorRow.style.borderRadius = "15px";
+    errorRow.style.padding = "8px 10px";
+    errorRow.style.background = "linear-gradient(180deg, #fff1f2 0%, #ffe4e6 100%)";
+    errorRow.style.border = "1px solid #fecaca";
+    errorRow.style.color = "#b91c1c";
+
+    const label = document.createElement("span");
+    label.textContent = "AI Error";
+    label.style.display = "block";
+    label.style.marginBottom = "3px";
+    label.style.fontSize = "9px";
+    label.style.fontWeight = "800";
+    label.style.lineHeight = "1.2";
+    label.style.letterSpacing = "0";
+    label.style.textTransform = "uppercase";
+    label.style.color = "#b91c1c";
+    errorRow.appendChild(label);
+
+    const text = document.createElement("span");
+    text.textContent = message;
+    text.style.display = "block";
+    text.style.fontSize = "11px";
+    text.style.fontWeight = "600";
+    text.style.lineHeight = "1.4";
+    text.style.letterSpacing = "0";
+    text.style.wordBreak = "break-word";
+    errorRow.appendChild(text);
+
+    return errorRow;
+  }
+
+  function renderOptions(
+    options: RenderableTranslationOption[],
+    pendingLabel?: string,
+    errorLabel?: string
+  ): void {
     optionsContainer.innerHTML = "";
     translationTexts = options.map((option) => getOptionText(option)).filter(Boolean);
     selectedText = options[0] ? getOptionText(options[0]) : "";
@@ -660,6 +712,10 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
       optionsContainer.appendChild(createPendingRow(pendingLabel));
     }
 
+    if (errorLabel) {
+      optionsContainer.appendChild(createInlineErrorRow(errorLabel));
+    }
+
     setActionAvailability(Boolean(selectedText));
     syncSpeakerButtons();
     manualPosition = positionOverlay(root, card, params.anchorRect, manualPosition);
@@ -694,8 +750,8 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
     setLoading: (label = "Loading translation...") => {
       setStatus(label);
     },
-    setTranslations: (options, pendingLabel) => {
-      renderOptions(options, pendingLabel);
+    setTranslations: (options, pendingLabel, errorLabel) => {
+      renderOptions(options, pendingLabel, errorLabel);
     },
     setError: (message) => {
       setStatus(message, "error");

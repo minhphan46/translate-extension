@@ -1,6 +1,7 @@
 import { detectTranslationDirection } from "../shared/language";
 import { extensionStorage } from "../shared/storage";
-import type { TranslationOption, TranslationResult } from "../shared/types";
+import type { TranslationAiProvider, TranslationOption, TranslationResult } from "../shared/types";
+import { translateVietnameseToEnglishWithGemini } from "./gemini";
 import { translateVietnameseToEnglish } from "./openai";
 
 export type TranslationPartialListener = (result: TranslationResult) => void;
@@ -43,7 +44,9 @@ async function translateVietnameseToEnglishFallback(text: string): Promise<strin
 function buildResult(
   originalText: string,
   options: TranslationOption[],
-  direction: TranslationResult["direction"]
+  direction: TranslationResult["direction"],
+  pendingAiProvider?: TranslationAiProvider,
+  aiError?: string
 ): TranslationResult {
   const translatedOptions = options.map((option) => option.text);
 
@@ -52,6 +55,8 @@ function buildResult(
     translatedText: translatedOptions[0] ?? "",
     translatedOptions,
     translationOptions: options,
+    pendingAiProvider,
+    aiError,
     direction
   };
 }
@@ -94,11 +99,19 @@ export async function translateSelection(
   }
 
   const settings = await extensionStorage.getSettings();
-  const hasActiveKey =
+  const aiProvider = settings.aiProvider ?? "openai";
+  const hasOpenAiKey =
     settings.keys.some((item) => item.id === settings.activeKeyId && item.apiKey.trim()) ||
     settings.keys.some((item) => item.apiKey.trim());
+  const hasGeminiKey =
+    settings.geminiKeys.some(
+      (item) => item.id === settings.activeGeminiKeyId && item.apiKey.trim()
+    ) ||
+    settings.geminiKeys.some((item) => item.apiKey.trim()) ||
+    Boolean(settings.geminiApiKey?.trim());
+  const hasActiveAiKey = aiProvider === "gemini" ? hasGeminiKey : hasOpenAiKey;
 
-  if (!settings.enableAiVietnameseToEnglishOptions || !hasActiveKey) {
+  if (!settings.enableAiVietnameseToEnglishOptions || !hasActiveAiKey) {
     const translatedText = await translateVietnameseToEnglishFallback(text);
     return buildResult(
       text,
@@ -109,6 +122,8 @@ export async function translateSelection(
 
   const completedOptions: TranslationOption[] = [];
   const errors: string[] = [];
+  let aiError = "";
+  const aiProviderLabel = aiProvider === "gemini" ? "Gemini" : "GPT";
 
   const googleTask = translateVietnameseToEnglishFallback(text)
     .then((translatedText): TranslationOption[] => [
@@ -119,16 +134,27 @@ export async function translateSelection(
       return [] satisfies TranslationOption[];
     });
 
-  const gptTask = translateVietnameseToEnglish(text, settings)
+  const aiTask = (
+    aiProvider === "gemini"
+      ? translateVietnameseToEnglishWithGemini(text, settings)
+      : translateVietnameseToEnglish(text, settings)
+  )
     .then((translatedTexts): TranslationOption[] =>
       translatedTexts.map((translatedText) => ({
         text: translatedText,
-        source: "gpt",
-        label: "GPT"
+        source: aiProvider === "gemini" ? "gemini" : "gpt",
+        label: aiProvider === "gemini" ? "Gemini" : "GPT"
       }))
     )
     .catch((error: unknown) => {
-      errors.push(error instanceof Error ? error.message : "OpenAI translation failed.");
+      const message =
+        error instanceof Error
+          ? error.message
+          : aiProvider === "gemini"
+            ? "Gemini translation failed."
+            : "OpenAI translation failed.";
+      aiError = `${aiProviderLabel} error: ${message}`;
+      errors.push(aiError);
       return [] satisfies TranslationOption[];
     });
 
@@ -138,25 +164,35 @@ export async function translateSelection(
     }
 
     completedOptions.push(...options);
-    onPartial?.(buildResult(text, sortVietnameseToEnglishOptions(completedOptions), direction));
+    const hasAiOption = completedOptions.some(
+      (option) => option.source === "gpt" || option.source === "gemini"
+    );
+    onPartial?.(
+      buildResult(
+        text,
+        sortVietnameseToEnglishOptions(completedOptions),
+        direction,
+        hasAiOption ? undefined : aiProvider
+      )
+    );
   };
 
-  const [googleOptions, gptOptions] = await Promise.all([
+  const [googleOptions, aiOptions] = await Promise.all([
     googleTask.then((options) => {
       notifyPartial(options);
       return options;
     }),
-    gptTask.then((options) => {
+    aiTask.then((options) => {
       notifyPartial(options);
       return options;
     })
   ]);
 
-  const translatedOptions = sortVietnameseToEnglishOptions([...googleOptions, ...gptOptions]);
+  const translatedOptions = sortVietnameseToEnglishOptions([...googleOptions, ...aiOptions]);
 
   if (!translatedOptions.length) {
     throw new Error(errors.join(" ") || "Unable to translate selected text.");
   }
 
-  return buildResult(text, translatedOptions, direction);
+  return buildResult(text, translatedOptions, direction, undefined, aiError || undefined);
 }

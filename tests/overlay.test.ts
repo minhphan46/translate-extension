@@ -1,4 +1,4 @@
-import { fireEvent, getByLabelText, getByText, queryByLabelText } from "@testing-library/dom";
+import { fireEvent, getByLabelText, getByText, queryByLabelText, queryByText } from "@testing-library/dom";
 import { createTranslationOverlay } from "../src/content/overlay";
 
 describe("createTranslationOverlay", () => {
@@ -94,6 +94,52 @@ describe("createTranslationOverlay", () => {
     );
 
     expect(getByLabelText(document.body, "GPT is translating...")).toBeTruthy();
+    fireEvent.click(getByLabelText(document.body, "Copy all translations"));
+
+    expect(onCopy).toHaveBeenCalledWith("hello");
+  });
+
+  it("shows Gemini as the loading source for Gemini translations", () => {
+    const overlay = createTranslationOverlay({
+      originalText: "xin chao",
+      direction: "vi-to-en",
+      anchorRect: new DOMRect(100, 180, 120, 24),
+      onCopy: vi.fn(),
+      onOpenSettings: vi.fn(),
+      onSpeakToggle: vi.fn()
+    });
+
+    document.body.appendChild(overlay.element);
+    overlay.setTranslations(
+      [{ text: "hello", source: "google", label: "Google Translate" }],
+      "Gemini is translating..."
+    );
+
+    const loadingRow = getByLabelText(document.body, "Gemini is translating...");
+    expect(getByText(loadingRow, "Gemini")).toBeTruthy();
+    expect(queryByText(loadingRow, "GPT")).toBeNull();
+  });
+
+  it("shows AI errors in the translation area without copying them", async () => {
+    const onCopy = vi.fn(async () => {});
+    const overlay = createTranslationOverlay({
+      originalText: "xin chao",
+      direction: "vi-to-en",
+      anchorRect: new DOMRect(100, 180, 120, 24),
+      onCopy,
+      onOpenSettings: vi.fn(),
+      onSpeakToggle: vi.fn()
+    });
+
+    document.body.appendChild(overlay.element);
+    overlay.setTranslations(
+      [{ text: "hello", source: "google", label: "Google Translate" }],
+      undefined,
+      "Gemini error: API key invalid"
+    );
+
+    expect(getByText(document.body, "AI Error")).toBeTruthy();
+    expect(getByText(document.body, "Gemini error: API key invalid")).toBeTruthy();
     fireEvent.click(getByLabelText(document.body, "Copy all translations"));
 
     expect(onCopy).toHaveBeenCalledWith("hello");

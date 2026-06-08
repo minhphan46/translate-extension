@@ -1,6 +1,18 @@
 import type { RuntimeMessage, RuntimeResponse } from "../shared/messages";
 import { translateSelection } from "./translator";
 
+async function openDashboardPage(): Promise<void> {
+  await chrome.runtime.openOptionsPage();
+}
+
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason !== "install" && details.reason !== "update") {
+    return;
+  }
+
+  void openDashboardPage().catch(() => undefined);
+});
+
 chrome.runtime.onMessage.addListener((message: RuntimeMessage, sender, sendResponse) => {
   void (async () => {
     try {
@@ -26,7 +38,7 @@ chrome.runtime.onMessage.addListener((message: RuntimeMessage, sender, sendRespo
       }
 
       if (message.type === "OPEN_OPTIONS") {
-        await chrome.runtime.openOptionsPage();
+        await openDashboardPage();
         sendResponse({ ok: true, data: null } satisfies RuntimeResponse);
         return;
       }
