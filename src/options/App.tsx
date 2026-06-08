@@ -54,7 +54,12 @@ export function App() {
   const [promptTemplate, setPromptTemplate] = useState("");
   const [enableAiVietnameseToEnglishOptions, setEnableAiVietnameseToEnglishOptions] = useState(false);
   const [overlayTheme, setOverlayTheme] = useState<OverlayTheme>("transparent");
-  const [status, setStatus] = useState("Ready");
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  function showToast(message: string, type: "success" | "error" = "success") {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  }
 
   useEffect(() => {
     void (async () => {
@@ -91,13 +96,13 @@ export function App() {
   async function saveSettings(nextSettings: ExtensionSettings): Promise<void> {
     await extensionStorage.saveSettings(nextSettings);
     setSettings(nextSettings);
-    setStatus("Saved");
+    showToast("Saved successfully");
   }
 
   async function handleAddKey(): Promise<void> {
     if (aiProvider === "gemini") {
       if (!geminiApiKey.trim()) {
-        setStatus("Gemini API key required");
+        showToast("Gemini API key required", "error");
         return;
       }
 
@@ -127,7 +132,7 @@ export function App() {
     }
 
     if (!apiKey.trim()) {
-      setStatus("OpenAI API key required");
+      showToast("OpenAI API key required", "error");
       return;
     }
 
@@ -201,7 +206,7 @@ export function App() {
         enableAiVietnameseToEnglishOptions,
         overlayTheme
       });
-      setStatus("Deleted Gemini key");
+      showToast("Deleted Gemini key");
       return;
     }
 
@@ -221,7 +226,7 @@ export function App() {
       enableAiVietnameseToEnglishOptions,
       overlayTheme
     });
-    setStatus("Deleted OpenAI key");
+    showToast("Deleted OpenAI key");
   }
 
   async function handleSelectProvider(nextProvider: TranslationAiProvider): Promise<void> {
@@ -261,6 +266,21 @@ export function App() {
       geminiModel: geminiModel.trim() || DEFAULT_GEMINI_MODEL,
       promptTemplate,
       enableAiVietnameseToEnglishOptions,
+      overlayTheme
+    });
+  }
+
+  async function handleToggleAiOptions(): Promise<void> {
+    const nextValue = !enableAiVietnameseToEnglishOptions;
+    setEnableAiVietnameseToEnglishOptions(nextValue);
+    await saveSettings({
+      ...settings,
+      model,
+      aiProvider,
+      geminiApiKey: activeGeminiKey?.apiKey ?? settings.geminiApiKey,
+      geminiModel: geminiModel.trim() || DEFAULT_GEMINI_MODEL,
+      promptTemplate,
+      enableAiVietnameseToEnglishOptions: nextValue,
       overlayTheme
     });
   }
@@ -313,10 +333,31 @@ export function App() {
             <section className="px-6 py-8 sm:px-8 lg:px-10">
               {activeTab === "dashboard" ? (
                 <div>
-                  <div className="mb-6 flex items-center justify-between">
+                  <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <h2 className="font-display text-3xl font-semibold">Dashboard</h2>
                       <p className="mt-2 text-sm text-slate-500">Configured API keys and active model.</p>
+                      <div className="mt-4 flex items-center gap-3">
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={enableAiVietnameseToEnglishOptions}
+                          onClick={() => void handleToggleAiOptions()}
+                          className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 ${
+                            enableAiVietnameseToEnglishOptions ? "bg-teal-600" : "bg-slate-200"
+                          }`}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                              enableAiVietnameseToEnglishOptions ? "translate-x-5" : "translate-x-0"
+                            }`}
+                          />
+                        </button>
+                        <span className="text-sm font-medium text-slate-700">
+                          Enable AI options for Vietnamese to English
+                        </span>
+                      </div>
                     </div>
                     <div className="flex gap-2">
                     <div
@@ -519,21 +560,6 @@ export function App() {
                             placeholder="Use {{text}} for selected content. Leave empty for default prompt."
                           />
                         </label>
-                        <label className="flex items-start gap-3 rounded-3xl border border-slate-200 px-4 py-4 text-sm text-slate-700">
-                          <input
-                            type="checkbox"
-                            checked={enableAiVietnameseToEnglishOptions}
-                            onChange={(event) =>
-                              setEnableAiVietnameseToEnglishOptions(event.target.checked)
-                            }
-                            className="mt-1 h-4 w-4 accent-teal-600"
-                          />
-                          <span>
-                            <span className="block font-semibold text-slate-900">
-                              Enable AI options for Vietnamese to English
-                            </span>
-                          </span>
-                        </label>
                         <button
                           type="button"
                           onClick={() => void handleSavePreferences()}
@@ -595,9 +621,13 @@ export function App() {
                     </div>
                   </section>
 
-                  <div className="mt-6 rounded-[24px] border border-teal-100 bg-teal-50 px-5 py-4 text-sm text-teal-900">
-                    Status: {status}
-                  </div>
+                  {toast && (
+                    <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold text-white shadow-xl animate-in fade-in slide-in-from-bottom-4 ${
+                      toast.type === "error" ? "bg-red-500" : "bg-slate-800"
+                    }`}>
+                      {toast.message}
+                    </div>
+                  )}
                 </div>
               )}
             </section>

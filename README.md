@@ -1,4 +1,7 @@
-# Translate Extension
+<div align="center">
+  <img src="./src/assets/icon-128.png" alt="Translate Extension Logo" width="128" />
+  <h1>Translate Extension</h1>
+</div>
 
 A Chrome Extension for quick website translation with two translation flows:
 
@@ -16,6 +19,10 @@ The extension includes:
 
 - Select text on any webpage and press `Shift` to open the translation modal
 - Show translation near the selected text
+- **Multi-Provider AI**: Choose between OpenAI and Google Gemini for high-quality translations
+- **Vietnamese -> English AI Options**: Toggle AI options right from the Dashboard
+- **Theming**: Pick your preferred popup style (Transparent glass, White panel, Dark glass)
+- **Settings Dashboard**: Manage API keys, select models, configure prompts, and view toast notifications in a modern UI
 - Copy original or translated text
 - Read original and translated text aloud
 - Toggle speech on/off from the same button
@@ -31,6 +38,7 @@ The extension includes:
 - `Vite`
 - `Vitest`
 - `Lucide`
+- `cross-env`
 
 ## Project Structure
 
@@ -81,15 +89,16 @@ You can open the settings page in either of these ways:
 1. From the Chrome extension details page, click `Extension options`
 2. From the translation modal, click the `Settings` icon
 
-### Add an OpenAI API key
+### Add an API key
 
 In the `Settings` tab:
 
-1. Enter a label
-2. Enter your OpenAI API key
-3. Enter the model name
-4. Optionally enter a custom prompt template
-5. Click `Save`
+1. Select your preferred provider (OpenAI or Gemini)
+2. Enter a label for your key
+3. Enter your API key
+4. Enter the model name (e.g., `gpt-4o-mini` or `gemini-2.5-flash`)
+5. Optionally enter a custom prompt template
+6. Click `Save` and look for the success Toast notification
 
 ### Prompt template
 
@@ -161,8 +170,10 @@ npm run build
 
 ## Notes
 
-- `Vietnamese -> English` requires a valid OpenAI API key
-- `Foreign language -> Vietnamese` does not require OpenAI
+## Notes
+
+- `Vietnamese -> English` requires a valid API key (OpenAI or Gemini)
+- `Foreign language -> Vietnamese` does not require an API key
 - The current shortcut is `Shift`
 - The modal is positioned near the selected text and stays within the viewport
 
