@@ -29,7 +29,7 @@ function createEmptyState(): ExtensionSettings {
     geminiModel: DEFAULT_GEMINI_MODEL,
     promptTemplate: "",
     enableAiVietnameseToEnglishOptions: false,
-    overlayTheme: "transparent"
+    overlayTheme: "white"
   };
 }
 
@@ -53,7 +53,7 @@ export function App() {
   const [geminiModel, setGeminiModel] = useState(DEFAULT_GEMINI_MODEL);
   const [promptTemplate, setPromptTemplate] = useState("");
   const [enableAiVietnameseToEnglishOptions, setEnableAiVietnameseToEnglishOptions] = useState(false);
-  const [overlayTheme, setOverlayTheme] = useState<OverlayTheme>("transparent");
+  const [overlayTheme, setOverlayTheme] = useState<OverlayTheme>("white");
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   function showToast(message: string, type: "success" | "error" = "success") {

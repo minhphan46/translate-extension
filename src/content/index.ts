@@ -141,13 +141,13 @@ function createRequestId(): string {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
 }
 
-async function getOverlayTheme(): Promise<"transparent" | "white"> {
+async function getOverlayTheme(): Promise<"transparent" | "white" | "dark"> {
   try {
     return (await extensionStorage.getSettings()).overlayTheme;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to load settings.";
     debugLog("Using default overlay theme", { message });
-    return "transparent";
+    return "white";
   }
 }
 

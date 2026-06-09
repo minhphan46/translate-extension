@@ -44,7 +44,7 @@ describe("extensionStorage", () => {
     expect(settings.promptTemplate).toBe("");
     expect(settings.keys).toEqual([]);
     expect(settings.enableAiVietnameseToEnglishOptions).toBe(false);
-    expect(settings.overlayTheme).toBe("transparent");
+    expect(settings.overlayTheme).toBe("white");
   });
 
   it("adds api key to collection", async () => {

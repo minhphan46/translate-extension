@@ -154,7 +154,7 @@ const darkPalette: OverlayPalette = {
 
 function getOverlayPalette(theme: OverlayTheme | undefined): OverlayPalette {
   if (theme === "dark") return darkPalette;
-  return theme === "white" ? whitePalette : transparentPalette;
+  return theme === "transparent" ? transparentPalette : whitePalette;
 }
 
 function applyBackdropGlass(element: HTMLElement, blur = glassBlur): void {
