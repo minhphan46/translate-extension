@@ -22,6 +22,11 @@ export interface ExtensionSettings {
   promptTemplate: string;
   enableAiVietnameseToEnglishOptions: boolean;
   overlayTheme: OverlayTheme;
+  ttsRate: number;
+  ttsVoiceVi: string;
+  ttsVolume: number;
+  popupWidth: number;
+  fontSize: number;
 }
 
 export interface TranslationResult {

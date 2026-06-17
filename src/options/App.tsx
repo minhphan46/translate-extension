@@ -29,7 +29,12 @@ function createEmptyState(): ExtensionSettings {
     geminiModel: DEFAULT_GEMINI_MODEL,
     promptTemplate: "",
     enableAiVietnameseToEnglishOptions: false,
-    overlayTheme: "white"
+    overlayTheme: "white",
+    ttsRate: 1.0,
+    ttsVoiceVi: "",
+    ttsVolume: 1.0,
+    popupWidth: 500,
+    fontSize: 13
   };
 }
 
@@ -54,6 +59,12 @@ export function App() {
   const [promptTemplate, setPromptTemplate] = useState("");
   const [enableAiVietnameseToEnglishOptions, setEnableAiVietnameseToEnglishOptions] = useState(false);
   const [overlayTheme, setOverlayTheme] = useState<OverlayTheme>("white");
+  const [ttsRate, setTtsRate] = useState(1.0);
+  const [ttsVoiceVi, setTtsVoiceVi] = useState("");
+  const [ttsVolume, setTtsVolume] = useState(1.0);
+  const [popupWidth, setPopupWidth] = useState(500);
+  const [fontSize, setFontSize] = useState(13);
+  const [viVoices, setViVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   function showToast(message: string, type: "success" | "error" = "success") {
@@ -72,7 +83,25 @@ export function App() {
       setPromptTemplate(nextSettings.promptTemplate);
       setEnableAiVietnameseToEnglishOptions(nextSettings.enableAiVietnameseToEnglishOptions);
       setOverlayTheme(nextSettings.overlayTheme);
+      setTtsRate(nextSettings.ttsRate ?? 1.0);
+      setTtsVoiceVi(nextSettings.ttsVoiceVi ?? "");
+      setTtsVolume(nextSettings.ttsVolume ?? 1.0);
+      setPopupWidth(nextSettings.popupWidth ?? 500);
+      setFontSize(nextSettings.fontSize ?? 13);
     })();
+  }, []);
+
+  useEffect(() => {
+    function loadVoices() {
+      const allVoices = window.speechSynthesis.getVoices();
+      const filtered = allVoices.filter((v) => v.lang.toLowerCase().startsWith("vi"));
+      setViVoices(filtered);
+    }
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
   }, []);
 
   const activeKey = useMemo(
@@ -154,7 +183,12 @@ export function App() {
       geminiModel: geminiModel.trim() || DEFAULT_GEMINI_MODEL,
       promptTemplate,
       enableAiVietnameseToEnglishOptions,
-      overlayTheme
+      overlayTheme,
+      ttsRate,
+      ttsVoiceVi,
+      ttsVolume,
+      popupWidth,
+      fontSize
     };
 
     await saveSettings(nextSettings);
@@ -282,6 +316,101 @@ export function App() {
       promptTemplate,
       enableAiVietnameseToEnglishOptions: nextValue,
       overlayTheme
+    });
+  }
+
+  async function handleSelectTtsRate(nextRate: number): Promise<void> {
+    setTtsRate(nextRate);
+    await saveSettings({
+      ...settings,
+      model,
+      aiProvider,
+      geminiApiKey: activeGeminiKey?.apiKey ?? settings.geminiApiKey,
+      geminiModel: geminiModel.trim() || DEFAULT_GEMINI_MODEL,
+      promptTemplate,
+      enableAiVietnameseToEnglishOptions,
+      overlayTheme,
+      ttsRate: nextRate,
+      ttsVoiceVi,
+      ttsVolume,
+      popupWidth,
+      fontSize
+    });
+  }
+
+  async function handleSelectTtsVoice(nextVoice: string): Promise<void> {
+    setTtsVoiceVi(nextVoice);
+    await saveSettings({
+      ...settings,
+      model,
+      aiProvider,
+      geminiApiKey: activeGeminiKey?.apiKey ?? settings.geminiApiKey,
+      geminiModel: geminiModel.trim() || DEFAULT_GEMINI_MODEL,
+      promptTemplate,
+      enableAiVietnameseToEnglishOptions,
+      overlayTheme,
+      ttsRate,
+      ttsVoiceVi: nextVoice,
+      ttsVolume,
+      popupWidth,
+      fontSize
+    });
+  }
+
+  async function handleSelectTtsVolume(nextVolume: number): Promise<void> {
+    setTtsVolume(nextVolume);
+    await saveSettings({
+      ...settings,
+      model,
+      aiProvider,
+      geminiApiKey: activeGeminiKey?.apiKey ?? settings.geminiApiKey,
+      geminiModel: geminiModel.trim() || DEFAULT_GEMINI_MODEL,
+      promptTemplate,
+      enableAiVietnameseToEnglishOptions,
+      overlayTheme,
+      ttsRate,
+      ttsVoiceVi,
+      ttsVolume: nextVolume,
+      popupWidth,
+      fontSize
+    });
+  }
+
+  async function handleSelectPopupWidth(nextWidth: number): Promise<void> {
+    setPopupWidth(nextWidth);
+    await saveSettings({
+      ...settings,
+      model,
+      aiProvider,
+      geminiApiKey: activeGeminiKey?.apiKey ?? settings.geminiApiKey,
+      geminiModel: geminiModel.trim() || DEFAULT_GEMINI_MODEL,
+      promptTemplate,
+      enableAiVietnameseToEnglishOptions,
+      overlayTheme,
+      ttsRate,
+      ttsVoiceVi,
+      ttsVolume,
+      popupWidth: nextWidth,
+      fontSize
+    });
+  }
+
+  async function handleSelectFontSize(nextFontSize: number): Promise<void> {
+    setFontSize(nextFontSize);
+    await saveSettings({
+      ...settings,
+      model,
+      aiProvider,
+      geminiApiKey: activeGeminiKey?.apiKey ?? settings.geminiApiKey,
+      geminiModel: geminiModel.trim() || DEFAULT_GEMINI_MODEL,
+      promptTemplate,
+      enableAiVietnameseToEnglishOptions,
+      overlayTheme,
+      ttsRate,
+      ttsVoiceVi,
+      ttsVolume,
+      popupWidth,
+      fontSize: nextFontSize
     });
   }
 
@@ -572,52 +701,179 @@ export function App() {
                   </div>
 
                   <section className="mt-6 rounded-[24px] border border-slate-200 bg-white p-6">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between mb-4">
                       <div>
-                        <h3 className="text-lg font-semibold text-slate-900">Popup theme</h3>
-                      </div>
-                      <div className="rounded-full bg-teal-50 px-4 py-2 text-sm font-semibold text-teal-700">
-                        {overlayTheme === "transparent" ? "Transparent" : overlayTheme === "white" ? "White" : "Dark"}
+                        <h3 className="text-lg font-semibold text-slate-900">Voice & Speed (TTS)</h3>
+                        <p className="mt-1 text-sm text-slate-500">Customize speech speed, volume, and choose a Vietnamese voice.</p>
                       </div>
                     </div>
 
-                    <div className="mt-5 grid gap-3 md:grid-cols-3">
-                      <label className="flex items-start gap-3 rounded-3xl border border-slate-200 px-4 py-4 text-sm text-slate-700">
-                        <input
-                          type="radio"
-                          name="overlay-theme"
-                          checked={overlayTheme === "transparent"}
-                          onChange={() => void handleSelectOverlayTheme("transparent")}
-                          className="mt-1 h-4 w-4 accent-teal-600"
-                        />
-                        <span>
-                          <span className="block font-semibold text-slate-900">Transparent glass</span>
-                        </span>
-                      </label>
-                      <label className="flex items-start gap-3 rounded-3xl border border-slate-200 px-4 py-4 text-sm text-slate-700">
-                        <input
-                          type="radio"
-                          name="overlay-theme"
-                          checked={overlayTheme === "white"}
-                          onChange={() => void handleSelectOverlayTheme("white")}
-                          className="mt-1 h-4 w-4 accent-teal-600"
-                        />
-                        <span>
-                          <span className="block font-semibold text-slate-900">White panel</span>
-                        </span>
-                      </label>
-                      <label className="flex items-start gap-3 rounded-3xl border border-slate-200 px-4 py-4 text-sm text-slate-700">
-                        <input
-                          type="radio"
-                          name="overlay-theme"
-                          checked={overlayTheme === "dark"}
-                          onChange={() => void handleSelectOverlayTheme("dark")}
-                          className="mt-1 h-4 w-4 accent-teal-600"
-                        />
-                        <span>
-                          <span className="block font-semibold text-slate-900">Dark glass</span>
-                        </span>
-                      </label>
+                    <div className="grid gap-6 md:grid-cols-2">
+                      <div className="flex flex-col gap-6">
+                        <div className="flex flex-col gap-2">
+                          <label className="text-sm font-semibold text-slate-700">
+                            Speed: <span className="text-teal-600 font-bold">{ttsRate}x</span>
+                          </label>
+                          <div className="flex items-center gap-3 mt-1">
+                            <span className="text-xs text-slate-400">0.5x</span>
+                            <input
+                              type="range"
+                              min="0.5"
+                              max="2.0"
+                              step="0.1"
+                              value={ttsRate}
+                              onChange={(e) => void handleSelectTtsRate(parseFloat(e.target.value))}
+                              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-teal-600 focus:outline-none"
+                            />
+                            <span className="text-xs text-slate-400">2.0x</span>
+                          </div>
+                          <div className="flex justify-between text-[10px] text-slate-400 px-6">
+                            <span>Slow</span>
+                            <span>1.0x (Default)</span>
+                            <span>Fast</span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                          <label className="text-sm font-semibold text-slate-700">
+                            Volume: <span className="text-teal-600 font-bold">{Math.round(ttsVolume * 100)}%</span>
+                          </label>
+                          <div className="flex items-center gap-3 mt-1">
+                            <span className="text-xs text-slate-400">0%</span>
+                            <input
+                              type="range"
+                              min="0.0"
+                              max="1.0"
+                              step="0.1"
+                              value={ttsVolume}
+                              onChange={(e) => void handleSelectTtsVolume(parseFloat(e.target.value))}
+                              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-teal-600 focus:outline-none"
+                            />
+                            <span className="text-xs text-slate-400">100%</span>
+                          </div>
+                          <div className="flex justify-between text-[10px] text-slate-400 px-6">
+                            <span>Muted</span>
+                            <span>50%</span>
+                            <span>Max</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <label className="text-sm font-semibold text-slate-700">Vietnamese Voice</label>
+                        <select
+                          value={ttsVoiceVi}
+                          onChange={(e) => void handleSelectTtsVoice(e.target.value)}
+                          className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none ring-0 transition focus:border-teal-500"
+                        >
+                          <option value="">System Default Voice</option>
+                          {viVoices.map((voice) => (
+                            <option key={voice.name} value={voice.name}>
+                              {voice.name} ({voice.lang})
+                            </option>
+                          ))}
+                        </select>
+                        <p className="text-xs text-slate-400 mt-1">
+                          List of voices is retrieved from your device. On macOS, you can add Vietnamese voices in System Settings.
+                        </p>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="mt-6 rounded-[24px] border border-slate-200 bg-white p-6">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between mb-4">
+                      <div>
+                        <h3 className="text-lg font-semibold text-slate-900">Popup Appearance</h3>
+                        <p className="mt-1 text-sm text-slate-500">Customize the look and layout of the translation popup card.</p>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-6 md:grid-cols-2">
+                      <div className="flex flex-col gap-3">
+                        <label className="text-sm font-semibold text-slate-700">Theme</label>
+                        <div className="grid gap-2">
+                          <label className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 cursor-pointer hover:bg-slate-50 transition">
+                            <input
+                              type="radio"
+                              name="overlay-theme"
+                              checked={overlayTheme === "transparent"}
+                              onChange={() => void handleSelectOverlayTheme("transparent")}
+                              className="h-4 w-4 accent-teal-600"
+                            />
+                            <span className="font-semibold text-slate-900">Transparent glass</span>
+                          </label>
+                          <label className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 cursor-pointer hover:bg-slate-50 transition">
+                            <input
+                              type="radio"
+                              name="overlay-theme"
+                              checked={overlayTheme === "white"}
+                              onChange={() => void handleSelectOverlayTheme("white")}
+                              className="h-4 w-4 accent-teal-600"
+                            />
+                            <span className="font-semibold text-slate-900">White panel</span>
+                          </label>
+                          <label className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 cursor-pointer hover:bg-slate-50 transition">
+                            <input
+                              type="radio"
+                              name="overlay-theme"
+                              checked={overlayTheme === "dark"}
+                              onChange={() => void handleSelectOverlayTheme("dark")}
+                              className="h-4 w-4 accent-teal-600"
+                            />
+                            <span className="font-semibold text-slate-900">Dark glass</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-6">
+                        <div className="flex flex-col gap-2">
+                          <label className="text-sm font-semibold text-slate-700">
+                            Popup Width: <span className="text-teal-600 font-bold">{popupWidth}px</span>
+                          </label>
+                          <div className="flex items-center gap-3 mt-1">
+                            <span className="text-xs text-slate-400">300px</span>
+                            <input
+                              type="range"
+                              min="300"
+                              max="800"
+                              step="50"
+                              value={popupWidth}
+                              onChange={(e) => void handleSelectPopupWidth(parseInt(e.target.value))}
+                              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-teal-600 focus:outline-none"
+                            />
+                            <span className="text-xs text-slate-400">800px</span>
+                          </div>
+                          <div className="flex justify-between text-[10px] text-slate-400 px-6">
+                            <span>Narrow</span>
+                            <span>500px (Default)</span>
+                            <span>Wide</span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                          <label className="text-sm font-semibold text-slate-700">
+                            Font Size: <span className="text-teal-600 font-bold">{fontSize}px</span>
+                          </label>
+                          <div className="flex items-center gap-3 mt-1">
+                            <span className="text-xs text-slate-400">11px</span>
+                            <input
+                              type="range"
+                              min="11"
+                              max="20"
+                              step="1"
+                              value={fontSize}
+                              onChange={(e) => void handleSelectFontSize(parseInt(e.target.value))}
+                              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-teal-600 focus:outline-none"
+                            />
+                            <span className="text-xs text-slate-400">20px</span>
+                          </div>
+                          <div className="flex justify-between text-[10px] text-slate-400 px-6">
+                            <span>Small</span>
+                            <span>13px (Default)</span>
+                            <span>Large</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </section>
 

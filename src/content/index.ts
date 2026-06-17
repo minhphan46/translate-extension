@@ -105,7 +105,35 @@ function stopSpeaking(): void {
   activeOverlay?.setSpeaking(null);
 }
 
-function speakText(id: "original" | "translation", text: string, lang: string): void {
+function findVoice(lang: string, preferredVoiceName?: string): SpeechSynthesisVoice | null {
+  if (lang === "auto") {
+    return null;
+  }
+
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) {
+    return null;
+  }
+
+  // If a preferred voice name is specified and this is a Vietnamese query
+  const isVietnamese = lang.toLowerCase().startsWith("vi");
+  if (isVietnamese && preferredVoiceName) {
+    const preferred = voices.find((v) => v.name === preferredVoiceName);
+    if (preferred) {
+      return preferred;
+    }
+  }
+
+  const langPrefix = lang.split("-")[0].toLowerCase();
+  // Priority: exact lang match → same lang prefix
+  return (
+    voices.find((v) => v.lang.toLowerCase() === lang.toLowerCase()) ??
+    voices.find((v) => v.lang.toLowerCase().startsWith(langPrefix)) ??
+    null
+  );
+}
+
+async function speakText(id: "original" | "translation", text: string, lang: string): Promise<void> {
   if (activeSpeechTarget === id && window.speechSynthesis.speaking) {
     debugLog("Stopping active speech", { id });
     stopSpeaking();
@@ -113,8 +141,31 @@ function speakText(id: "original" | "translation", text: string, lang: string): 
   }
 
   window.speechSynthesis.cancel();
+  
+  let settings = null;
+  try {
+    settings = await extensionStorage.getSettings();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to load settings for TTS.";
+    debugLog("Failed to get TTS settings", { message });
+  }
+
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = lang;
+  
+  if (settings) {
+    utterance.rate = settings.ttsRate ?? 1.0;
+    utterance.volume = settings.ttsVolume ?? 1.0;
+  }
+
+  const voice = findVoice(lang, settings?.ttsVoiceVi);
+  if (voice) {
+    utterance.voice = voice;
+    debugLog("Selected voice", { name: voice.name, lang: voice.lang, rate: utterance.rate });
+  } else {
+    debugLog("No matching voice found, using browser default", { lang, rate: utterance.rate });
+  }
+
   utterance.onend = () => {
     debugLog("Speech ended", { id });
     if (activeUtterance === utterance) {
@@ -141,15 +192,7 @@ function createRequestId(): string {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
 }
 
-async function getOverlayTheme(): Promise<"transparent" | "white" | "dark"> {
-  try {
-    return (await extensionStorage.getSettings()).overlayTheme;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unable to load settings.";
-    debugLog("Using default overlay theme", { message });
-    return "white";
-  }
-}
+
 
 function getRenderableOptions(result: TranslationResult): TranslationOption[] {
   if (result.translationOptions?.length) {
@@ -204,9 +247,25 @@ async function mountLoadingOverlay(
   direction: TranslationResult["direction"]
 ): Promise<ReturnType<typeof createTranslationOverlay>> {
   destroyOverlay();
-  const theme = await getOverlayTheme();
+  
+  let theme: "transparent" | "white" | "dark" = "white";
+  let popupWidth = 500;
+  let fontSize = 13;
+  
+  try {
+    const settings = await extensionStorage.getSettings();
+    theme = settings.overlayTheme;
+    popupWidth = settings.popupWidth ?? 500;
+    fontSize = settings.fontSize ?? 13;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to load settings for overlay.";
+    debugLog("Using default overlay appearance", { message });
+  }
+
   debugLog("Mounting loading overlay", {
     theme,
+    popupWidth,
+    fontSize,
     anchorRect: {
       top: anchorRect.top,
       left: anchorRect.left,
@@ -222,6 +281,8 @@ async function mountLoadingOverlay(
     direction,
     theme,
     anchorRect,
+    popupWidth,
+    fontSize,
     onCopy: async (value) => navigator.clipboard.writeText(value),
     onOpenSettings: () => {
       void chrome.runtime.sendMessage({ type: "OPEN_OPTIONS" } satisfies RuntimeMessage);

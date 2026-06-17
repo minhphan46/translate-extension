@@ -23,7 +23,12 @@ const DEFAULT_SETTINGS: ExtensionSettings = {
   geminiModel: DEFAULT_GEMINI_MODEL,
   promptTemplate: "",
   enableAiVietnameseToEnglishOptions: false,
-  overlayTheme: "white"
+  overlayTheme: "white",
+  ttsRate: 1.0,
+  ttsVoiceVi: "",
+  ttsVolume: 1.0,
+  popupWidth: 500,
+  fontSize: 13
 };
 
 function normalizeSettings(settings: ExtensionSettings): ExtensionSettings {

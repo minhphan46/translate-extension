@@ -18,6 +18,8 @@ interface OverlayParams {
   onCopy: (value: string) => Promise<void> | void;
   onOpenSettings: () => void;
   onSpeakToggle: (payload: { id: "original" | "translation"; value: string; lang: string }) => void;
+  popupWidth?: number;
+  fontSize?: number;
 }
 
 interface OverlayHandle {
@@ -252,7 +254,8 @@ function clampOverlayPosition(card: HTMLDivElement, position: PositionBox): Posi
 
   card.style.maxHeight = `${maxCardHeight}px`;
 
-  const overlayWidth = Math.ceil(card.getBoundingClientRect().width || 500);
+  const fallbackWidth = parseInt(card.style.width) || 500;
+  const overlayWidth = Math.ceil(card.getBoundingClientRect().width || fallbackWidth);
   const overlayHeight = Math.ceil(
     card.getBoundingClientRect().height || Math.min(card.scrollHeight, maxCardHeight)
   );
@@ -287,7 +290,8 @@ function positionOverlay(
     return clamped;
   }
 
-  const overlayWidth = Math.ceil(card.getBoundingClientRect().width || 500);
+  const fallbackWidth = parseInt(card.style.width) || 500;
+  const overlayWidth = Math.ceil(card.getBoundingClientRect().width || fallbackWidth);
   const overlayHeight = Math.ceil(
     card.getBoundingClientRect().height || Math.min(card.scrollHeight, Math.max(220, viewportHeight - viewportPadding * 2))
   );
@@ -327,7 +331,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
   root.style.cursor = "default";
 
   const card = document.createElement("div");
-  card.style.width = "500px";
+  card.style.width = `${params.popupWidth ?? 500}px`;
   card.style.display = "flex";
   card.style.flexDirection = "column";
   card.style.overflow = "hidden";
@@ -399,7 +403,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
   const originalText = document.createElement("p");
   originalText.textContent = params.originalText;
   originalText.style.margin = "0";
-  originalText.style.fontSize = "13px";
+  originalText.style.fontSize = `${params.fontSize ?? 13}px`;
   originalText.style.fontWeight = "700";
   originalText.style.lineHeight = "1.55";
   originalText.style.color = palette.textPrimary;
@@ -775,7 +779,7 @@ export function createTranslationOverlay(params: OverlayParams): OverlayHandle {
       optionButton.style.borderRadius = "15px";
       optionButton.style.padding = "10px 12px";
       optionButton.style.textAlign = "left";
-      optionButton.style.fontSize = "13px";
+      optionButton.style.fontSize = `${params.fontSize ?? 13}px`;
       optionButton.style.fontWeight = index === 0 ? "800" : "700";
       optionButton.style.lineHeight = "1.5";
       optionButton.style.wordBreak = "break-word";
